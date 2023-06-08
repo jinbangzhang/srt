@@ -77,7 +77,7 @@ CSndBuffer::CSndBuffer(int size, int maxpld, int authtag)
     , m_iAuthTagSize(authtag)
     , m_iCount(0)
     , m_iBytesCount(0)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // initial physical buffer of "size"
     m_pBuffer           = new Buffer;
     m_pBuffer->m_pcData = new char[m_iSize * m_iBlockLen];
@@ -109,7 +109,7 @@ CSndBuffer::CSndBuffer(int size, int maxpld, int authtag)
 }
 
 CSndBuffer::~CSndBuffer()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     Block* pb = m_pBlock->m_pNext;
     while (pb != m_pBlock)
     {
@@ -131,7 +131,7 @@ CSndBuffer::~CSndBuffer()
 }
 
 void CSndBuffer::addBuffer(const char* data, int len, SRT_MSGCTRL& w_mctrl)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int32_t& w_msgno     = w_mctrl.msgno;
     int32_t& w_seqno     = w_mctrl.pktseq;
     int64_t& w_srctime   = w_mctrl.srctime;
@@ -236,7 +236,7 @@ void CSndBuffer::addBuffer(const char* data, int len, SRT_MSGCTRL& w_mctrl)
 }
 
 int CSndBuffer::addBufferFromFile(fstream& ifs, int len)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const int iPktLen    = getMaxPacketLen();
     const int iNumBlocks = countNumPacketsRequired(len, iPktLen);
 
@@ -305,7 +305,7 @@ int CSndBuffer::addBufferFromFile(fstream& ifs, int len)
 }
 
 int CSndBuffer::readData(CPacket& w_packet, steady_clock::time_point& w_srctime, int kflgs, int& w_seqnoinc)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int readlen = 0;
     w_seqnoinc = 0;
 
@@ -363,7 +363,7 @@ int CSndBuffer::readData(CPacket& w_packet, steady_clock::time_point& w_srctime,
 }
 
 CSndBuffer::time_point CSndBuffer::peekNextOriginal() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock bufferguard(m_BufLock);
     if (m_pCurrBlock == m_pLastBlock)
         return time_point();
@@ -372,7 +372,7 @@ CSndBuffer::time_point CSndBuffer::peekNextOriginal() const
 }
 
 int32_t CSndBuffer::getMsgNoAt(const int offset)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock bufferguard(m_BufLock);
 
     Block* p = m_pFirstBlock;
@@ -418,7 +418,7 @@ int32_t CSndBuffer::getMsgNoAt(const int offset)
 }
 
 int CSndBuffer::readData(const int offset, CPacket& w_packet, steady_clock::time_point& w_srctime, int& w_msglen)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int32_t& msgno_bitset = w_packet.m_iMsgNo;
 
     ScopedLock bufferguard(m_BufLock);
@@ -511,7 +511,7 @@ int CSndBuffer::readData(const int offset, CPacket& w_packet, steady_clock::time
 }
 
 sync::steady_clock::time_point CSndBuffer::getPacketRexmitTime(const int offset)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock bufferguard(m_BufLock);
     const Block* p = m_pFirstBlock;
 
@@ -528,7 +528,7 @@ sync::steady_clock::time_point CSndBuffer::getPacketRexmitTime(const int offset)
 }
 
 void CSndBuffer::ackData(int offset)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock bufferguard(m_BufLock);
 
     bool move = false;
@@ -548,23 +548,23 @@ void CSndBuffer::ackData(int offset)
 }
 
 int CSndBuffer::getCurrBufSize() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return m_iCount;
 }
 
 int CSndBuffer::getMaxPacketLen() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return m_iBlockLen - m_iAuthTagSize;
 }
 
 int CSndBuffer::countNumPacketsRequired(int iPldLen) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const int iPktLen = getMaxPacketLen();
     return countNumPacketsRequired(iPldLen, iPktLen);
 }
 
 int CSndBuffer::countNumPacketsRequired(int iPldLen, int iPktLen) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return (iPldLen + iPktLen - 1) / iPktLen;
 }
 
@@ -576,7 +576,7 @@ int round_val(double val)
 }
 
 int CSndBuffer::getAvgBufSize(int& w_bytes, int& w_tsp)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock bufferguard(m_BufLock); /* Consistency of pkts vs. bytes vs. spantime */
 
     /* update stats in case there was no add/ack activity lately */
@@ -592,7 +592,7 @@ int CSndBuffer::getAvgBufSize(int& w_bytes, int& w_tsp)
 }
 
 void CSndBuffer::updAvgBufSize(const steady_clock::time_point& now)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (!m_mavg.isTimeToUpdate(now))
         return;
 
@@ -603,7 +603,7 @@ void CSndBuffer::updAvgBufSize(const steady_clock::time_point& now)
 }
 
 int CSndBuffer::getCurrBufSize(int& w_bytes, int& w_timespan) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     w_bytes = m_iBytesCount;
     /*
      * Timespan can be less then 1000 us (1 ms) if few packets.
@@ -616,7 +616,7 @@ int CSndBuffer::getCurrBufSize(int& w_bytes, int& w_timespan) const
 }
 
 CSndBuffer::duration CSndBuffer::getBufferingDelay(const time_point& tnow) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock lck(m_BufLock);
     SRT_ASSERT(m_pFirstBlock);
     if (m_iCount == 0)
@@ -626,7 +626,7 @@ CSndBuffer::duration CSndBuffer::getBufferingDelay(const time_point& tnow) const
 }
 
 int CSndBuffer::dropLateData(int& w_bytes, int32_t& w_first_msgno, const steady_clock::time_point& too_late_time)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int     dpkts  = 0;
     int     dbytes = 0;
     bool    move   = false;
@@ -664,7 +664,7 @@ int CSndBuffer::dropLateData(int& w_bytes, int32_t& w_first_msgno, const steady_
 }
 
 void CSndBuffer::increase()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int unitsize = m_pBuffer->m_iSize;
 
     // new physical buffer

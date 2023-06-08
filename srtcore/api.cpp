@@ -93,14 +93,14 @@ void srt::CUDTSocket::construct()
 }
 
 srt::CUDTSocket::~CUDTSocket()
-{
+{HLOGC(inlog.Debug, log);
     releaseMutex(m_AcceptLock);
     releaseCond(m_AcceptCond);
     releaseMutex(m_ControlLock);
 }
 
 SRT_SOCKSTATUS srt::CUDTSocket::getStatus()
-{
+{HLOGC(inlog.Debug, log);
     // TTL in CRendezvousQueue::updateConnStatus() will set m_bConnecting to false.
     // Although m_Status is still SRTS_CONNECTING, the connection is in fact to be closed due to TTL expiry.
     // In this case m_bConnected is also false. Both checks are required to avoid hitting
@@ -118,7 +118,7 @@ SRT_SOCKSTATUS srt::CUDTSocket::getStatus()
 
 // [[using locked(m_GlobControlLock)]]
 void srt::CUDTSocket::breakSocket_LOCKED()
-{
+{HLOGC(inlog.Debug, log);
     // This function is intended to be called from GC,
     // under a lock of m_GlobControlLock.
     m_UDT.m_bBroken        = true;
@@ -129,7 +129,7 @@ void srt::CUDTSocket::breakSocket_LOCKED()
 }
 
 void srt::CUDTSocket::setClosed()
-{
+{HLOGC(inlog.Debug, log);
     m_Status = SRTS_CLOSED;
 
     // a socket will not be immediately removed when it is closed
@@ -140,14 +140,14 @@ void srt::CUDTSocket::setClosed()
 }
 
 void srt::CUDTSocket::setBrokenClosed()
-{
+{HLOGC(inlog.Debug, log);
     m_UDT.m_iBrokenCounter = 60;
     m_UDT.m_bBroken        = true;
     setClosed();
 }
 
 bool srt::CUDTSocket::readReady()
-{
+{HLOGC(inlog.Debug, log);
     // TODO: Use m_RcvBufferLock here (CUDT::isRcvReadReady())?
     if (m_UDT.m_bConnected && m_UDT.m_pRcvBuffer->isRcvDataReady())
         return true;
@@ -159,12 +159,12 @@ bool srt::CUDTSocket::readReady()
 }
 
 bool srt::CUDTSocket::writeReady() const
-{
+{HLOGC(inlog.Debug, log);
     return (m_UDT.m_bConnected && (m_UDT.m_pSndBuffer->getCurrBufSize() < m_UDT.m_config.iSndBufSize)) || broken();
 }
 
 bool srt::CUDTSocket::broken() const
-{
+{HLOGC(inlog.Debug, log);
     return m_UDT.m_bBroken || !m_UDT.m_bConnected;
 }
 
@@ -183,7 +183,7 @@ srt::CUDTUnited::CUDTUnited()
     , m_iInstanceCount(0)
     , m_bGCStatus(false)
     , m_ClosedSockets()
-{
+{HLOGC(inlog.Debug, log);
     // Socket ID MUST start from a random value
     m_SocketIDGenerator      = genRandomInt(1, MAX_SOCKET_VAL);
     m_SocketIDGenerator_init = m_SocketIDGenerator;
@@ -201,7 +201,7 @@ srt::CUDTUnited::CUDTUnited()
 }
 
 srt::CUDTUnited::~CUDTUnited()
-{
+{HLOGC(inlog.Debug, log);
     // Call it if it wasn't called already.
     // This will happen at the end of main() of the application,
     // when the user didn't call srt_cleanup().
@@ -268,13 +268,13 @@ int srt::CUDTUnited::startup()
 
     m_bGCStatus = true;
 
-    HLOGC(inlog.Debug, log << "SRT Clock Type: " << SRT_SYNC_CLOCK_STR);
+    // HLOGC(inlog.Debug, log << "SRT Clock Type: " << SRT_SYNC_CLOCK_STR);
 
     return 0;
 }
 
 int srt::CUDTUnited::cleanup()
-{
+{HLOGC(inlog.Debug, log);
     // IMPORTANT!!!
     // In this function there must be NO LOGGING AT ALL.  This function may
     // potentially be called from within the global program destructor, and
@@ -417,7 +417,7 @@ SRTSOCKET srt::CUDTUnited::generateSocketID(bool for_group)
 }
 
 SRTSOCKET srt::CUDTUnited::newSocket(CUDTSocket** pps)
-{
+{HLOGC(inlog.Debug, log);
     // XXX consider using some replacement of std::unique_ptr
     // so that exceptions will clean up the object without the
     // need for a dedicated code.
@@ -475,7 +475,7 @@ int srt::CUDTUnited::newConnection(const SRTSOCKET     listen,
                                    CHandShake&         w_hs,
                                    int&                w_error,
                                    CUDT*&              w_acpu)
-{
+{HLOGC(inlog.Debug, log);
     CUDTSocket* ns = NULL;
     w_acpu         = NULL;
 
@@ -542,6 +542,7 @@ int srt::CUDTUnited::newConnection(const SRTSOCKET     listen,
 
     try
     {
+        HLOGC(inlog.Debug, log << "new CUDTSocket(*ls)");
         ns = new CUDTSocket(*ls);
         // No need to check the peer, this is the address from which the request has come.
         ns->m_PeerAddr = peer;
@@ -895,7 +896,7 @@ int srt::CUDTUnited::installConnectHook(const SRTSOCKET u, srt_connect_callback_
 }
 
 SRT_SOCKSTATUS srt::CUDTUnited::getStatus(const SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     // protects the m_Sockets structure
     ScopedLock cg(m_GlobControlLock);
 
@@ -912,7 +913,7 @@ SRT_SOCKSTATUS srt::CUDTUnited::getStatus(const SRTSOCKET u)
 }
 
 int srt::CUDTUnited::bind(CUDTSocket* s, const sockaddr_any& name)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(s->m_ControlLock);
 
     // cannot bind a socket more than once
@@ -939,7 +940,7 @@ int srt::CUDTUnited::bind(CUDTSocket* s, const sockaddr_any& name)
 }
 
 int srt::CUDTUnited::bind(CUDTSocket* s, UDPSOCKET udpsock)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(s->m_ControlLock);
 
     // cannot bind a socket more than once
@@ -968,7 +969,7 @@ int srt::CUDTUnited::bind(CUDTSocket* s, UDPSOCKET udpsock)
 }
 
 int srt::CUDTUnited::listen(const SRTSOCKET u, int backlog)
-{
+{HLOGC(inlog.Debug, log);
     if (backlog <= 0)
         throw CUDTException(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -1014,7 +1015,7 @@ int srt::CUDTUnited::listen(const SRTSOCKET u, int backlog)
 }
 
 SRTSOCKET srt::CUDTUnited::accept_bond(const SRTSOCKET listeners[], int lsize, int64_t msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     CEPollDesc* ed  = 0;
     int         eid = m_EPoll.create(&ed);
 
@@ -1059,7 +1060,7 @@ SRTSOCKET srt::CUDTUnited::accept_bond(const SRTSOCKET listeners[], int lsize, i
 }
 
 SRTSOCKET srt::CUDTUnited::accept(const SRTSOCKET listen, sockaddr* pw_addr, int* pw_addrlen)
-{
+{HLOGC(inlog.Debug, log);
     if (pw_addr && !pw_addrlen)
     {
         LOGC(cnlog.Error, log << "srt_accept: provided address, but address length parameter is missing");
@@ -1194,7 +1195,7 @@ SRTSOCKET srt::CUDTUnited::accept(const SRTSOCKET listen, sockaddr* pw_addr, int
 }
 
 int srt::CUDTUnited::connect(SRTSOCKET u, const sockaddr* srcname, const sockaddr* tarname, int namelen)
-{
+{HLOGC(inlog.Debug, log);
     // Here both srcname and tarname must be specified
     if (!srcname || !tarname || namelen < int(sizeof(sockaddr_in)))
     {
@@ -1240,7 +1241,7 @@ int srt::CUDTUnited::connect(SRTSOCKET u, const sockaddr* srcname, const sockadd
 }
 
 int srt::CUDTUnited::connect(const SRTSOCKET u, const sockaddr* name, int namelen, int32_t forced_isn)
-{
+{HLOGC(inlog.Debug, log);
     if (!name || namelen < int(sizeof(sockaddr_in)))
     {
         LOGC(aclog.Error, log << "connect(): invalid call: name=" << name << " namelen=" << namelen);
@@ -1277,7 +1278,7 @@ int srt::CUDTUnited::connect(const SRTSOCKET u, const sockaddr* name, int namele
 
 #if ENABLE_BONDING
 int srt::CUDTUnited::singleMemberConnect(CUDTGroup* pg, SRT_SOCKGROUPCONFIG* gd)
-{
+{HLOGC(inlog.Debug, log);
     int gstat = groupConnect(pg, gd, 1);
     if (gstat == -1)
     {
@@ -1297,7 +1298,7 @@ int srt::CUDTUnited::singleMemberConnect(CUDTGroup* pg, SRT_SOCKGROUPCONFIG* gd)
 
 // [[using assert(pg->m_iBusy > 0)]]
 int srt::CUDTUnited::groupConnect(CUDTGroup* pg, SRT_SOCKGROUPCONFIG* targets, int arraysize)
-{
+{HLOGC(inlog.Debug, log);
     CUDTGroup& g = *pg;
     SRT_ASSERT(g.m_iBusy > 0);
 
@@ -1830,7 +1831,7 @@ int srt::CUDTUnited::groupConnect(CUDTGroup* pg, SRT_SOCKGROUPCONFIG* targets, i
 #endif
 
 int srt::CUDTUnited::connectIn(CUDTSocket* s, const sockaddr_any& target_addr, int32_t forced_isn)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(s->m_ControlLock);
     // a socket can "connect" only if it is in the following states:
     // - OPENED: assume the socket binding parameters are configured
@@ -1896,7 +1897,7 @@ int srt::CUDTUnited::connectIn(CUDTSocket* s, const sockaddr_any& target_addr, i
 }
 
 int srt::CUDTUnited::close(const SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
 #if ENABLE_BONDING
     if (u & SRTGROUP_MASK)
     {
@@ -1915,7 +1916,7 @@ int srt::CUDTUnited::close(const SRTSOCKET u)
 
 #if ENABLE_BONDING
 void srt::CUDTUnited::deleteGroup(CUDTGroup* g)
-{
+{HLOGC(inlog.Debug, log);
     using srt_logging::gmlog;
 
     srt::sync::ScopedLock cg(m_GlobControlLock);
@@ -1924,7 +1925,7 @@ void srt::CUDTUnited::deleteGroup(CUDTGroup* g)
 
 // [[using locked(m_GlobControlLock)]]
 void srt::CUDTUnited::deleteGroup_LOCKED(CUDTGroup* g)
-{
+{HLOGC(inlog.Debug, log);
     SRT_ASSERT(g->groupEmpty());
 
     // After that the group is no longer findable by GroupKeeper
@@ -1962,7 +1963,7 @@ void srt::CUDTUnited::deleteGroup_LOCKED(CUDTGroup* g)
 #endif
 
 int srt::CUDTUnited::close(CUDTSocket* s)
-{
+{HLOGC(inlog.Debug, log);
     HLOGC(smlog.Debug, log << s->core().CONID() << "CLOSE. Acquiring control lock");
     ScopedLock socket_cg(s->m_ControlLock);
     HLOGC(smlog.Debug, log << s->core().CONID() << "CLOSING (removing from listening, closing CUDT)");
@@ -2126,7 +2127,7 @@ int srt::CUDTUnited::close(CUDTSocket* s)
 }
 
 void srt::CUDTUnited::getpeername(const SRTSOCKET u, sockaddr* pw_name, int* pw_namelen)
-{
+{HLOGC(inlog.Debug, log);
     if (!pw_name || !pw_namelen)
         throw CUDTException(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -2150,7 +2151,7 @@ void srt::CUDTUnited::getpeername(const SRTSOCKET u, sockaddr* pw_name, int* pw_
 }
 
 void srt::CUDTUnited::getsockname(const SRTSOCKET u, sockaddr* pw_name, int* pw_namelen)
-{
+{HLOGC(inlog.Debug, log);
     if (!pw_name || !pw_namelen)
         throw CUDTException(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -2174,7 +2175,7 @@ void srt::CUDTUnited::getsockname(const SRTSOCKET u, sockaddr* pw_name, int* pw_
 }
 
 int srt::CUDTUnited::select(UDT::UDSET* readfds, UDT::UDSET* writefds, UDT::UDSET* exceptfds, const timeval* timeout)
-{
+{HLOGC(inlog.Debug, log);
     const steady_clock::time_point entertime = steady_clock::now();
 
     const int64_t timeo_us = timeout ? static_cast<int64_t>(timeout->tv_sec) * 1000000 + timeout->tv_usec : -1;
@@ -2282,7 +2283,7 @@ int srt::CUDTUnited::selectEx(const vector<SRTSOCKET>& fds,
                               vector<SRTSOCKET>*       writefds,
                               vector<SRTSOCKET>*       exceptfds,
                               int64_t                  msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     const steady_clock::time_point entertime = steady_clock::now();
 
     const int64_t                timeo_us = msTimeOut >= 0 ? msTimeOut * 1000 : -1;
@@ -2344,17 +2345,17 @@ int srt::CUDTUnited::selectEx(const vector<SRTSOCKET>& fds,
 }
 
 int srt::CUDTUnited::epoll_create()
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.create();
 }
 
 int srt::CUDTUnited::epoll_clear_usocks(int eid)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.clear_usocks(eid);
 }
 
 int srt::CUDTUnited::epoll_add_usock(const int eid, const SRTSOCKET u, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     int ret = -1;
 #if ENABLE_BONDING
     if (u & SRTGROUP_MASK)
@@ -2383,25 +2384,25 @@ int srt::CUDTUnited::epoll_add_usock(const int eid, const SRTSOCKET u, const int
 // - CEPoll::m_EPollLock
 // - CUDT::m_RecvLock
 int srt::CUDTUnited::epoll_add_usock_INTERNAL(const int eid, CUDTSocket* s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     int ret = m_EPoll.update_usock(eid, s->m_SocketID, events);
     s->core().addEPoll(eid);
     return ret;
 }
 
 int srt::CUDTUnited::epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.add_ssock(eid, s, events);
 }
 
 int srt::CUDTUnited::epoll_update_ssock(const int eid, const SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.update_ssock(eid, s, events);
 }
 
 template <class EntityType>
 int srt::CUDTUnited::epoll_remove_entity(const int eid, EntityType* ent)
-{
+{HLOGC(inlog.Debug, log);
     // XXX Not sure if this is anyhow necessary because setting readiness
     // to false doesn't actually trigger any action. Further research needed.
     HLOGC(ealog.Debug, log << "epoll_remove_usock: CLEARING readiness on E" << eid << " of @" << ent->id());
@@ -2423,19 +2424,19 @@ int srt::CUDTUnited::epoll_remove_entity(const int eid, EntityType* ent)
 
 // Needed internal access!
 int srt::CUDTUnited::epoll_remove_socket_INTERNAL(const int eid, CUDTSocket* s)
-{
+{HLOGC(inlog.Debug, log);
     return epoll_remove_entity(eid, &s->core());
 }
 
 #if ENABLE_BONDING
 int srt::CUDTUnited::epoll_remove_group_INTERNAL(const int eid, CUDTGroup* g)
-{
+{HLOGC(inlog.Debug, log);
     return epoll_remove_entity(eid, g);
 }
 #endif
 
 int srt::CUDTUnited::epoll_remove_usock(const int eid, const SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     CUDTSocket* s = 0;
 
 #if ENABLE_BONDING
@@ -2461,22 +2462,22 @@ int srt::CUDTUnited::epoll_remove_usock(const int eid, const SRTSOCKET u)
 }
 
 int srt::CUDTUnited::epoll_remove_ssock(const int eid, const SYSSOCKET s)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.remove_ssock(eid, s);
 }
 
 int srt::CUDTUnited::epoll_uwait(const int eid, SRT_EPOLL_EVENT* fdsSet, int fdsSize, int64_t msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.uwait(eid, fdsSet, fdsSize, msTimeOut);
 }
 
 int32_t srt::CUDTUnited::epoll_set(int eid, int32_t flags)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.setflags(eid, flags);
 }
 
 int srt::CUDTUnited::epoll_release(const int eid)
-{
+{HLOGC(inlog.Debug, log);
     return m_EPoll.release(eid);
 }
 
@@ -2509,7 +2510,7 @@ srt::CUDTSocket* srt::CUDTUnited::locateSocket_LOCKED(SRTSOCKET u)
 
 #if ENABLE_BONDING
 srt::CUDTGroup* srt::CUDTUnited::locateAcquireGroup(SRTSOCKET u, ErrorHandling erh)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(m_GlobControlLock);
 
     const groups_t::iterator i = m_Groups.find(u);
@@ -2526,7 +2527,7 @@ srt::CUDTGroup* srt::CUDTUnited::locateAcquireGroup(SRTSOCKET u, ErrorHandling e
 }
 
 srt::CUDTGroup* srt::CUDTUnited::acquireSocketsGroup(CUDTSocket* s)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(m_GlobControlLock);
     CUDTGroup* g = s->m_GroupOf;
     if (!g)
@@ -2540,7 +2541,7 @@ srt::CUDTGroup* srt::CUDTUnited::acquireSocketsGroup(CUDTSocket* s)
 #endif
 
 srt::CUDTSocket* srt::CUDTUnited::locatePeer(const sockaddr_any& peer, const SRTSOCKET id, int32_t isn)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(m_GlobControlLock);
 
     map<int64_t, set<SRTSOCKET> >::iterator i = m_PeerRec.find(CUDTSocket::getPeerSpec(id, isn));
@@ -2701,12 +2702,12 @@ void srt::CUDTUnited::checkBrokenSockets()
     for (vector<SRTSOCKET>::iterator l = tbr.begin(); l != tbr.end(); ++l)
         removeSocket(*l);
 
-    HLOGC(smlog.Debug, log << "checkBrokenSockets: after removal: m_ClosedSockets.size()=" << m_ClosedSockets.size());
+    // HLOGC(smlog.Debug, log << "checkBrokenSockets: after removal: m_ClosedSockets.size()=" << m_ClosedSockets.size());
 }
 
 // [[using locked(m_GlobControlLock)]]
 void srt::CUDTUnited::removeSocket(const SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     sockets_t::iterator i = m_ClosedSockets.find(u);
 
     // invalid socket ID
@@ -2824,7 +2825,7 @@ void srt::CUDTUnited::removeSocket(const SRTSOCKET u)
 }
 
 void srt::CUDTUnited::configureMuxer(CMultiplexer& w_m, const CUDTSocket* s, int af)
-{
+{HLOGC(inlog.Debug, log);
     w_m.m_mcfg       = s->core().m_config;
     w_m.m_iIPversion = af;
     w_m.m_iRefCount  = 1;
@@ -2832,7 +2833,7 @@ void srt::CUDTUnited::configureMuxer(CMultiplexer& w_m, const CUDTSocket* s, int
 }
 
 uint16_t srt::CUDTUnited::installMuxer(CUDTSocket* w_s, CMultiplexer& fw_sm)
-{
+{HLOGC(inlog.Debug, log);
     w_s->core().m_pSndQueue = fw_sm.m_pSndQueue;
     w_s->core().m_pRcvQueue = fw_sm.m_pRcvQueue;
     w_s->m_iMuxID           = fw_sm.m_iID;
@@ -2844,7 +2845,7 @@ uint16_t srt::CUDTUnited::installMuxer(CUDTSocket* w_s, CMultiplexer& fw_sm)
 
 bool srt::CUDTUnited::inet6SettingsCompat(const sockaddr_any& muxaddr, const CSrtMuxerConfig& cfgMuxer,
         const sockaddr_any& reqaddr, const CSrtMuxerConfig& cfgSocket)
-{
+{HLOGC(inlog.Debug, log);
     if (muxaddr.family() != AF_INET6)
         return true; // Don't check - the family has been checked already
 
@@ -2862,7 +2863,7 @@ bool srt::CUDTUnited::inet6SettingsCompat(const sockaddr_any& muxaddr, const CSr
 }
 
 bool srt::CUDTUnited::channelSettingsMatch(const CSrtMuxerConfig& cfgMuxer, const CSrtConfig& cfgSocket)
-{
+{HLOGC(inlog.Debug, log);
     if (!cfgMuxer.bReuseAddr)
     {
         HLOGP(smlog.Debug, "channelSettingsMatch: fail: the multiplexer is not reusable");
@@ -3108,11 +3109,13 @@ void srt::CUDTUnited::updateMux(CUDTSocket* s, const sockaddr_any& reqaddr, cons
     }
 
     // a new multiplexer is needed
+    HLOGC(inlog.Debug, log << "new CMultiplexer m");
     CMultiplexer m;
     configureMuxer((m), s, reqaddr.family());
 
     try
     {
+        HLOGC(inlog.Debug, log << "new CChannel()");
         m.m_pChannel = new CChannel();
         m.m_pChannel->setConfig(m.m_mcfg);
 
@@ -3153,6 +3156,7 @@ void srt::CUDTUnited::updateMux(CUDTSocket* s, const sockaddr_any& reqaddr, cons
             m.m_mcfg.iIpV6Only = m.m_pChannel->sockopt(IPPROTO_IPV6, IPV6_V6ONLY, -1);
         }
 
+        HLOGC(inlog.Debug, log << "new CTimer new CSndQueue new CRcvQueue");
         m.m_pTimer    = new CTimer;
         m.m_pSndQueue = new CSndQueue;
         m.m_pSndQueue->init(m.m_pChannel, m.m_pTimer);
@@ -3184,7 +3188,7 @@ void srt::CUDTUnited::updateMux(CUDTSocket* s, const sockaddr_any& reqaddr, cons
 // function. By historical reasons there's also a fallback for a case when the
 // multiplexer wasn't found by id, the search by port number continues.
 bool srt::CUDTUnited::updateListenerMux(CUDTSocket* s, const CUDTSocket* ls)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock cg(m_GlobControlLock);
     const int  port = ls->m_SelfAddr.hport();
 
@@ -3283,7 +3287,7 @@ void* srt::CUDTUnited::garbageCollect(void* p)
         INCREMENT_THREAD_ITERATIONS();
         self->checkBrokenSockets();
 
-        HLOGC(inlog.Debug, log << "GC: sleep 1 s");
+        // HLOGC(inlog.Debug, log << "GC: sleep 1 s");
         self->m_GCStopCond.wait_for(gclock, seconds_from(1));
     }
 
@@ -3342,7 +3346,7 @@ void* srt::CUDTUnited::garbageCollect(void* p)
         if (empty)
             break;
 
-        HLOGC(inlog.Debug, log << "GC: checkBrokenSockets didn't wipe all sockets, repeating after 1s sleep");
+        // HLOGC(inlog.Debug, log << "GC: checkBrokenSockets didn't wipe all sockets, repeating after 1s sleep");
         srt::sync::this_thread::sleep_for(milliseconds_from(1));
     }
 
@@ -3358,12 +3362,12 @@ int srt::CUDT::startup()
 }
 
 int srt::CUDT::cleanup()
-{
+{HLOGC(inlog.Debug, log);
     return uglobal().cleanup();
 }
 
 SRTSOCKET srt::CUDT::socket()
-{
+{HLOGC(inlog.Debug, log);
     if (!uglobal().m_bGCStatus)
         uglobal().startup();
 
@@ -3390,12 +3394,12 @@ SRTSOCKET srt::CUDT::socket()
 }
 
 srt::CUDT::APIError::APIError(const CUDTException& e)
-{
+{HLOGC(inlog.Debug, log);
     SetThreadLocalError(e);
 }
 
 srt::CUDT::APIError::APIError(CodeMajor mj, CodeMinor mn, int syserr)
-{
+{HLOGC(inlog.Debug, log);
     SetThreadLocalError(CUDTException(mj, mn, syserr));
 }
 
@@ -3405,7 +3409,7 @@ srt::CUDT::APIError::APIError(CodeMajor mj, CodeMinor mn, int syserr)
 
 // [[using locked(s_UDTUnited.m_GlobControlLock)]]
 srt::CUDTGroup& srt::CUDT::newGroup(const int type)
-{
+{HLOGC(inlog.Debug, log);
     const SRTSOCKET id = uglobal().generateSocketID(true);
 
     // Now map the group
@@ -3413,7 +3417,7 @@ srt::CUDTGroup& srt::CUDT::newGroup(const int type)
 }
 
 SRTSOCKET srt::CUDT::createGroup(SRT_GROUP_TYPE gt)
-{
+{HLOGC(inlog.Debug, log);
     // Doing the same lazy-startup as with srt_create_socket()
     if (!uglobal().m_bGCStatus)
         uglobal().startup();
@@ -3443,7 +3447,7 @@ SRTSOCKET srt::CUDT::createGroup(SRT_GROUP_TYPE gt)
 // [[using locked(m_ControlLock)]]
 // [[using locked(CUDT::s_UDTUnited.m_GlobControlLock)]]
 void srt::CUDTSocket::removeFromGroup(bool broken)
-{
+{HLOGC(inlog.Debug, log);
     CUDTGroup* g = m_GroupOf;
     if (g)
     {
@@ -3473,7 +3477,7 @@ void srt::CUDTSocket::removeFromGroup(bool broken)
 }
 
 SRTSOCKET srt::CUDT::getGroupOfSocket(SRTSOCKET socket)
-{
+{HLOGC(inlog.Debug, log);
     // Lock this for the whole function as we need the group
     // to persist the call.
     ScopedLock  glock(uglobal().m_GlobControlLock);
@@ -3485,7 +3489,7 @@ SRTSOCKET srt::CUDT::getGroupOfSocket(SRTSOCKET socket)
 }
 
 int srt::CUDT::getGroupData(SRTSOCKET groupid, SRT_SOCKGROUPDATA* pdata, size_t* psize)
-{
+{HLOGC(inlog.Debug, log);
     if ((groupid & SRTGROUP_MASK) == 0 || !psize)
     {
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
@@ -3503,7 +3507,7 @@ int srt::CUDT::getGroupData(SRTSOCKET groupid, SRT_SOCKGROUPDATA* pdata, size_t*
 #endif
 
 int srt::CUDT::bind(SRTSOCKET u, const sockaddr* name, int namelen)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         sockaddr_any sa(name, namelen);
@@ -3537,7 +3541,7 @@ int srt::CUDT::bind(SRTSOCKET u, const sockaddr* name, int namelen)
 }
 
 int srt::CUDT::bind(SRTSOCKET u, UDPSOCKET udpsock)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         CUDTSocket* s = uglobal().locateSocket(u);
@@ -3562,7 +3566,7 @@ int srt::CUDT::bind(SRTSOCKET u, UDPSOCKET udpsock)
 }
 
 int srt::CUDT::listen(SRTSOCKET u, int backlog)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().listen(u, backlog);
@@ -3583,7 +3587,7 @@ int srt::CUDT::listen(SRTSOCKET u, int backlog)
 }
 
 SRTSOCKET srt::CUDT::accept_bond(const SRTSOCKET listeners[], int lsize, int64_t msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().accept_bond(listeners, lsize, msTimeOut);
@@ -3607,7 +3611,7 @@ SRTSOCKET srt::CUDT::accept_bond(const SRTSOCKET listeners[], int lsize, int64_t
 }
 
 SRTSOCKET srt::CUDT::accept(SRTSOCKET u, sockaddr* addr, int* addrlen)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().accept(u, addr, addrlen);
@@ -3631,7 +3635,7 @@ SRTSOCKET srt::CUDT::accept(SRTSOCKET u, sockaddr* addr, int* addrlen)
 }
 
 int srt::CUDT::connect(SRTSOCKET u, const sockaddr* name, const sockaddr* tname, int namelen)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().connect(u, name, tname, namelen);
@@ -3653,7 +3657,7 @@ int srt::CUDT::connect(SRTSOCKET u, const sockaddr* name, const sockaddr* tname,
 
 #if ENABLE_BONDING
 int srt::CUDT::connectLinks(SRTSOCKET grp, SRT_SOCKGROUPCONFIG targets[], int arraysize)
-{
+{HLOGC(inlog.Debug, log);
     if (arraysize <= 0)
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -3685,7 +3689,7 @@ int srt::CUDT::connectLinks(SRTSOCKET grp, SRT_SOCKGROUPCONFIG targets[], int ar
 #endif
 
 int srt::CUDT::connect(SRTSOCKET u, const sockaddr* name, int namelen, int32_t forced_isn)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().connect(u, name, namelen, forced_isn);
@@ -3706,7 +3710,7 @@ int srt::CUDT::connect(SRTSOCKET u, const sockaddr* name, int namelen, int32_t f
 }
 
 int srt::CUDT::close(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().close(u);
@@ -3723,7 +3727,7 @@ int srt::CUDT::close(SRTSOCKET u)
 }
 
 int srt::CUDT::getpeername(SRTSOCKET u, sockaddr* name, int* namelen)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         uglobal().getpeername(u, name, namelen);
@@ -3741,7 +3745,7 @@ int srt::CUDT::getpeername(SRTSOCKET u, sockaddr* name, int* namelen)
 }
 
 int srt::CUDT::getsockname(SRTSOCKET u, sockaddr* name, int* namelen)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         uglobal().getsockname(u, name, namelen);
@@ -3759,7 +3763,7 @@ int srt::CUDT::getsockname(SRTSOCKET u, sockaddr* name, int* namelen)
 }
 
 int srt::CUDT::getsockopt(SRTSOCKET u, int, SRT_SOCKOPT optname, void* pw_optval, int* pw_optlen)
-{
+{HLOGC(inlog.Debug, log);
     if (!pw_optval || !pw_optlen)
     {
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
@@ -3792,7 +3796,7 @@ int srt::CUDT::getsockopt(SRTSOCKET u, int, SRT_SOCKOPT optname, void* pw_optval
 }
 
 int srt::CUDT::setsockopt(SRTSOCKET u, int, SRT_SOCKOPT optname, const void* optval, int optlen)
-{
+{HLOGC(inlog.Debug, log);
     if (!optval)
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -3823,7 +3827,7 @@ int srt::CUDT::setsockopt(SRTSOCKET u, int, SRT_SOCKOPT optname, const void* opt
 }
 
 int srt::CUDT::send(SRTSOCKET u, const char* buf, int len, int)
-{
+{HLOGC(inlog.Debug, log);
     SRT_MSGCTRL mctrl = srt_msgctrl_default;
     return sendmsg2(u, buf, len, (mctrl));
 }
@@ -3831,7 +3835,7 @@ int srt::CUDT::send(SRTSOCKET u, const char* buf, int len, int)
 // --> CUDT::recv moved down
 
 int srt::CUDT::sendmsg(SRTSOCKET u, const char* buf, int len, int ttl, bool inorder, int64_t srctime)
-{
+{HLOGC(inlog.Debug, log);
     SRT_MSGCTRL mctrl = srt_msgctrl_default;
     mctrl.msgttl      = ttl;
     mctrl.inorder     = inorder;
@@ -3840,7 +3844,7 @@ int srt::CUDT::sendmsg(SRTSOCKET u, const char* buf, int len, int ttl, bool inor
 }
 
 int srt::CUDT::sendmsg2(SRTSOCKET u, const char* buf, int len, SRT_MSGCTRL& w_m)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
 #if ENABLE_BONDING
@@ -3869,14 +3873,14 @@ int srt::CUDT::sendmsg2(SRTSOCKET u, const char* buf, int len, SRT_MSGCTRL& w_m)
 }
 
 int srt::CUDT::recv(SRTSOCKET u, char* buf, int len, int)
-{
+{HLOGC(inlog.Debug, log);
     SRT_MSGCTRL mctrl = srt_msgctrl_default;
     int         ret   = recvmsg2(u, buf, len, (mctrl));
     return ret;
 }
 
 int srt::CUDT::recvmsg(SRTSOCKET u, char* buf, int len, int64_t& srctime)
-{
+{HLOGC(inlog.Debug, log);
     SRT_MSGCTRL mctrl = srt_msgctrl_default;
     int         ret   = recvmsg2(u, buf, len, (mctrl));
     srctime           = mctrl.srctime;
@@ -3884,7 +3888,7 @@ int srt::CUDT::recvmsg(SRTSOCKET u, char* buf, int len, int64_t& srctime)
 }
 
 int srt::CUDT::recvmsg2(SRTSOCKET u, char* buf, int len, SRT_MSGCTRL& w_m)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
 #if ENABLE_BONDING
@@ -3909,7 +3913,7 @@ int srt::CUDT::recvmsg2(SRTSOCKET u, char* buf, int len, SRT_MSGCTRL& w_m)
 }
 
 int64_t srt::CUDT::sendfile(SRTSOCKET u, fstream& ifs, int64_t& offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         CUDT& udt = uglobal().locateSocket(u, CUDTUnited::ERH_THROW)->core();
@@ -3931,7 +3935,7 @@ int64_t srt::CUDT::sendfile(SRTSOCKET u, fstream& ifs, int64_t& offset, int64_t 
 }
 
 int64_t srt::CUDT::recvfile(SRTSOCKET u, fstream& ofs, int64_t& offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().locateSocket(u, CUDTUnited::ERH_THROW)->core().recvfile(ofs, offset, size, block);
@@ -3948,7 +3952,7 @@ int64_t srt::CUDT::recvfile(SRTSOCKET u, fstream& ofs, int64_t& offset, int64_t 
 }
 
 int srt::CUDT::select(int, UDT::UDSET* readfds, UDT::UDSET* writefds, UDT::UDSET* exceptfds, const timeval* timeout)
-{
+{HLOGC(inlog.Debug, log);
     if ((!readfds) && (!writefds) && (!exceptfds))
     {
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
@@ -3978,7 +3982,7 @@ int srt::CUDT::selectEx(const vector<SRTSOCKET>& fds,
                         vector<SRTSOCKET>*       writefds,
                         vector<SRTSOCKET>*       exceptfds,
                         int64_t                  msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     if ((!readfds) && (!writefds) && (!exceptfds))
     {
         return APIError(MJ_NOTSUP, MN_INVAL, 0);
@@ -4004,7 +4008,7 @@ int srt::CUDT::selectEx(const vector<SRTSOCKET>& fds,
 }
 
 int srt::CUDT::epoll_create()
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_create();
@@ -4021,7 +4025,7 @@ int srt::CUDT::epoll_create()
 }
 
 int srt::CUDT::epoll_clear_usocks(int eid)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_clear_usocks(eid);
@@ -4039,7 +4043,7 @@ int srt::CUDT::epoll_clear_usocks(int eid)
 }
 
 int srt::CUDT::epoll_add_usock(const int eid, const SRTSOCKET u, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_add_usock(eid, u, events);
@@ -4056,7 +4060,7 @@ int srt::CUDT::epoll_add_usock(const int eid, const SRTSOCKET u, const int* even
 }
 
 int srt::CUDT::epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_add_ssock(eid, s, events);
@@ -4073,7 +4077,7 @@ int srt::CUDT::epoll_add_ssock(const int eid, const SYSSOCKET s, const int* even
 }
 
 int srt::CUDT::epoll_update_usock(const int eid, const SRTSOCKET u, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_add_usock(eid, u, events);
@@ -4091,7 +4095,7 @@ int srt::CUDT::epoll_update_usock(const int eid, const SRTSOCKET u, const int* e
 }
 
 int srt::CUDT::epoll_update_ssock(const int eid, const SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_update_ssock(eid, s, events);
@@ -4109,7 +4113,7 @@ int srt::CUDT::epoll_update_ssock(const int eid, const SYSSOCKET s, const int* e
 }
 
 int srt::CUDT::epoll_remove_usock(const int eid, const SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_remove_usock(eid, u);
@@ -4127,7 +4131,7 @@ int srt::CUDT::epoll_remove_usock(const int eid, const SRTSOCKET u)
 }
 
 int srt::CUDT::epoll_remove_ssock(const int eid, const SYSSOCKET s)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_remove_ssock(eid, s);
@@ -4150,7 +4154,7 @@ int srt::CUDT::epoll_wait(const int       eid,
                           int64_t         msTimeOut,
                           set<SYSSOCKET>* lrfds,
                           set<SYSSOCKET>* lwfds)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_ref().wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
@@ -4167,7 +4171,7 @@ int srt::CUDT::epoll_wait(const int       eid,
 }
 
 int srt::CUDT::epoll_uwait(const int eid, SRT_EPOLL_EVENT* fdsSet, int fdsSize, int64_t msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_uwait(eid, fdsSet, fdsSize, msTimeOut);
@@ -4184,7 +4188,7 @@ int srt::CUDT::epoll_uwait(const int eid, SRT_EPOLL_EVENT* fdsSet, int fdsSize, 
 }
 
 int32_t srt::CUDT::epoll_set(const int eid, int32_t flags)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_set(eid, flags);
@@ -4201,7 +4205,7 @@ int32_t srt::CUDT::epoll_set(const int eid, int32_t flags)
 }
 
 int srt::CUDT::epoll_release(const int eid)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return uglobal().epoll_release(eid);
@@ -4218,12 +4222,12 @@ int srt::CUDT::epoll_release(const int eid)
 }
 
 srt::CUDTException& srt::CUDT::getlasterror()
-{
+{HLOGC(inlog.Debug, log);
     return GetThreadLocalError();
 }
 
 int srt::CUDT::bstats(SRTSOCKET u, CBytePerfMon* perf, bool clear, bool instantaneous)
-{
+{HLOGC(inlog.Debug, log);
 #if ENABLE_BONDING
     if (u & SRTGROUP_MASK)
         return groupsockbstats(u, perf, clear);
@@ -4248,7 +4252,7 @@ int srt::CUDT::bstats(SRTSOCKET u, CBytePerfMon* perf, bool clear, bool instanta
 
 #if ENABLE_BONDING
 int srt::CUDT::groupsockbstats(SRTSOCKET u, CBytePerfMon* perf, bool clear)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         CUDTUnited::GroupKeeper k(uglobal(), u, CUDTUnited::ERH_THROW);
@@ -4270,7 +4274,7 @@ int srt::CUDT::groupsockbstats(SRTSOCKET u, CBytePerfMon* perf, bool clear)
 #endif
 
 srt::CUDT* srt::CUDT::getUDTHandle(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
         return &uglobal().locateSocket(u, CUDTUnited::ERH_THROW)->core();
@@ -4289,7 +4293,7 @@ srt::CUDT* srt::CUDT::getUDTHandle(SRTSOCKET u)
 }
 
 vector<SRTSOCKET> srt::CUDT::existingSockets()
-{
+{HLOGC(inlog.Debug, log);
     vector<SRTSOCKET> out;
     for (CUDTUnited::sockets_t::iterator i = uglobal().m_Sockets.begin(); i != uglobal().m_Sockets.end(); ++i)
     {
@@ -4299,7 +4303,7 @@ vector<SRTSOCKET> srt::CUDT::existingSockets()
 }
 
 SRT_SOCKSTATUS srt::CUDT::getsockstate(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     try
     {
 #if ENABLE_BONDING
@@ -4330,110 +4334,110 @@ namespace UDT
 {
 
 int startup()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::startup();
 }
 
 int cleanup()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::cleanup();
 }
 
 int bind(SRTSOCKET u, const struct sockaddr* name, int namelen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::bind(u, name, namelen);
 }
 
 int bind2(SRTSOCKET u, UDPSOCKET udpsock)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::bind(u, udpsock);
 }
 
 int listen(SRTSOCKET u, int backlog)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::listen(u, backlog);
 }
 
 SRTSOCKET accept(SRTSOCKET u, struct sockaddr* addr, int* addrlen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::accept(u, addr, addrlen);
 }
 
 int connect(SRTSOCKET u, const struct sockaddr* name, int namelen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::connect(u, name, namelen, SRT_SEQNO_NONE);
 }
 
 int close(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::close(u);
 }
 
 int getpeername(SRTSOCKET u, struct sockaddr* name, int* namelen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getpeername(u, name, namelen);
 }
 
 int getsockname(SRTSOCKET u, struct sockaddr* name, int* namelen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getsockname(u, name, namelen);
 }
 
 int getsockopt(SRTSOCKET u, int level, SRT_SOCKOPT optname, void* optval, int* optlen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getsockopt(u, level, optname, optval, optlen);
 }
 
 int setsockopt(SRTSOCKET u, int level, SRT_SOCKOPT optname, const void* optval, int optlen)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::setsockopt(u, level, optname, optval, optlen);
 }
 
 // DEVELOPER API
 
 int connect_debug(SRTSOCKET u, const struct sockaddr* name, int namelen, int32_t forced_isn)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::connect(u, name, namelen, forced_isn);
 }
 
 int send(SRTSOCKET u, const char* buf, int len, int flags)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::send(u, buf, len, flags);
 }
 
 int recv(SRTSOCKET u, char* buf, int len, int flags)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::recv(u, buf, len, flags);
 }
 
 int sendmsg(SRTSOCKET u, const char* buf, int len, int ttl, bool inorder, int64_t srctime)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::sendmsg(u, buf, len, ttl, inorder, srctime);
 }
 
 int recvmsg(SRTSOCKET u, char* buf, int len, int64_t& srctime)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::recvmsg(u, buf, len, srctime);
 }
 
 int recvmsg(SRTSOCKET u, char* buf, int len)
-{
+{HLOGC(inlog.Debug, log);
     int64_t srctime;
     return srt::CUDT::recvmsg(u, buf, len, srctime);
 }
 
 int64_t sendfile(SRTSOCKET u, fstream& ifs, int64_t& offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::sendfile(u, ifs, offset, size, block);
 }
 
 int64_t recvfile(SRTSOCKET u, fstream& ofs, int64_t& offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::recvfile(u, ofs, offset, size, block);
 }
 
 int64_t sendfile2(SRTSOCKET u, const char* path, int64_t* offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     fstream ifs(path, ios::binary | ios::in);
     int64_t ret = srt::CUDT::sendfile(u, ifs, *offset, size, block);
     ifs.close();
@@ -4441,7 +4445,7 @@ int64_t sendfile2(SRTSOCKET u, const char* path, int64_t* offset, int64_t size, 
 }
 
 int64_t recvfile2(SRTSOCKET u, const char* path, int64_t* offset, int64_t size, int block)
-{
+{HLOGC(inlog.Debug, log);
     fstream ofs(path, ios::binary | ios::out);
     int64_t ret = srt::CUDT::recvfile(u, ofs, *offset, size, block);
     ofs.close();
@@ -4449,7 +4453,7 @@ int64_t recvfile2(SRTSOCKET u, const char* path, int64_t* offset, int64_t size, 
 }
 
 int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
@@ -4458,47 +4462,47 @@ int selectEx(const vector<SRTSOCKET>& fds,
              vector<SRTSOCKET>*       writefds,
              vector<SRTSOCKET>*       exceptfds,
              int64_t                  msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::selectEx(fds, readfds, writefds, exceptfds, msTimeOut);
 }
 
 int epoll_create()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_create();
 }
 
 int epoll_clear_usocks(int eid)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_clear_usocks(eid);
 }
 
 int epoll_add_usock(int eid, SRTSOCKET u, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_add_usock(eid, u, events);
 }
 
 int epoll_add_ssock(int eid, SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_add_ssock(eid, s, events);
 }
 
 int epoll_update_usock(int eid, SRTSOCKET u, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_update_usock(eid, u, events);
 }
 
 int epoll_update_ssock(int eid, SYSSOCKET s, const int* events)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_update_ssock(eid, s, events);
 }
 
 int epoll_remove_usock(int eid, SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_remove_usock(eid, u);
 }
 
 int epoll_remove_ssock(int eid, SYSSOCKET s)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_remove_ssock(eid, s);
 }
 
@@ -4508,13 +4512,13 @@ int epoll_wait(int             eid,
                int64_t         msTimeOut,
                set<SYSSOCKET>* lrfds,
                set<SYSSOCKET>* lwfds)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }
 
 template <class SOCKTYPE>
 inline void set_result(set<SOCKTYPE>* val, int* num, SOCKTYPE* fds)
-{
+{HLOGC(inlog.Debug, log);
     if (!val || !num || !fds)
         return;
 
@@ -4541,7 +4545,7 @@ int epoll_wait2(int        eid,
                 int*       lrnum,
                 SYSSOCKET* lwfds,
                 int*       lwnum)
-{
+{HLOGC(inlog.Debug, log);
     // This API is an alternative format for epoll_wait, created for
     // compatibility with other languages. Users need to pass in an array
     // for holding the returned sockets, with the maximum array length
@@ -4584,49 +4588,49 @@ int epoll_wait2(int        eid,
 }
 
 int epoll_uwait(int eid, SRT_EPOLL_EVENT* fdsSet, int fdsSize, int64_t msTimeOut)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_uwait(eid, fdsSet, fdsSize, msTimeOut);
 }
 
 int epoll_release(int eid)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::epoll_release(eid);
 }
 
 ERRORINFO& getlasterror()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getlasterror();
 }
 
 int getlasterror_code()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getlasterror().getErrorCode();
 }
 
 const char* getlasterror_desc()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getlasterror().getErrorMessage();
 }
 
 int getlasterror_errno()
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getlasterror().getErrno();
 }
 
 // Get error string of a given error code
 const char* geterror_desc(int code, int err)
-{
+{HLOGC(inlog.Debug, log);
     srt::CUDTException e(CodeMajor(code / 1000), CodeMinor(code % 1000), err);
     return (e.getErrorMessage());
 }
 
 int bstats(SRTSOCKET u, SRT_TRACEBSTATS* perf, bool clear)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::bstats(u, perf, clear);
 }
 
 SRT_SOCKSTATUS getsockstate(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     return srt::CUDT::getsockstate(u);
 }
 
@@ -4636,32 +4640,32 @@ namespace srt
 {
 
 void setloglevel(LogLevel::type ll)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.max_level = ll;
 }
 
 void addlogfa(LogFA fa)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.enabled_fa.set(fa, true);
 }
 
 void dellogfa(LogFA fa)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.enabled_fa.set(fa, false);
 }
 
 void resetlogfa(set<LogFA> fas)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     for (int i = 0; i <= SRT_LOGFA_LASTNONE; ++i)
         srt_logger_config.enabled_fa.set(i, fas.count(i));
 }
 
 void resetlogfa(const int* fara, size_t fara_size)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.enabled_fa.reset();
     for (const int* i = fara; i != fara + fara_size; ++i)
@@ -4669,40 +4673,40 @@ void resetlogfa(const int* fara, size_t fara_size)
 }
 
 void setlogstream(std::ostream& stream)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.log_stream = &stream;
 }
 
 void setloghandler(void* opaque, SRT_LOG_HANDLER_FN* handler)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.loghandler_opaque = opaque;
     srt_logger_config.loghandler_fn     = handler;
 }
 
 void setlogflags(int flags)
-{
+{HLOGC(inlog.Debug, log);
     ScopedLock gg(srt_logger_config.mutex);
     srt_logger_config.flags = flags;
 }
 
 SRT_API bool setstreamid(SRTSOCKET u, const std::string& sid)
-{
+{HLOGC(inlog.Debug, log);
     return CUDT::setstreamid(u, sid);
 }
 SRT_API std::string getstreamid(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     return CUDT::getstreamid(u);
 }
 
 int getrejectreason(SRTSOCKET u)
-{
+{HLOGC(inlog.Debug, log);
     return CUDT::rejectReason(u);
 }
 
 int setrejectreason(SRTSOCKET u, int value)
-{
+{HLOGC(inlog.Debug, log);
     return CUDT::rejectReason(u, value);
 }
 

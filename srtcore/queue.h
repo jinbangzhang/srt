@@ -592,7 +592,7 @@ struct CMultiplexer
         , m_pRcvQueue(NULL)
         , m_pChannel(NULL)
         , m_pTimer(NULL)
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
     }
 
     void destroy();

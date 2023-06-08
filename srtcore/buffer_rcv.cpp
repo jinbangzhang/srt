@@ -131,12 +131,12 @@ CRcvBuffer::CRcvBuffer(int initSeqNo, size_t size, CUnitQueue* unitqueue, bool b
     , m_iBytesCount(0)
     , m_iPktsCount(0)
     , m_uAvgPayloadSz(SRT_LIVE_DEF_PLSIZE)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     SRT_ASSERT(size < size_t(std::numeric_limits<int>::max())); // All position pointers are integers
 }
 
 CRcvBuffer::~CRcvBuffer()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // Can be optimized by only iterating m_iMaxPosOff from m_iStartPos.
     for (FixedArray<Entry>::iterator it = m_entries.begin(); it != m_entries.end(); ++it)
     {
@@ -149,7 +149,7 @@ CRcvBuffer::~CRcvBuffer()
 }
 
 int CRcvBuffer::insert(CUnit* unit)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     SRT_ASSERT(unit != NULL);
     const int32_t seqno  = unit->m_Packet.getSeqNo();
     const int     offset = CSeqNo::seqoff(m_iStartSeqNo, seqno);
@@ -207,7 +207,7 @@ int CRcvBuffer::insert(CUnit* unit)
 }
 
 int CRcvBuffer::dropUpTo(int32_t seqno)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     IF_RCVBUF_DEBUG(ScopedLog scoped_log);
     IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::dropUpTo: seqno " << seqno << " m_iStartSeqNo " << m_iStartSeqNo);
 
@@ -246,7 +246,7 @@ int CRcvBuffer::dropUpTo(int32_t seqno)
 }
 
 int CRcvBuffer::dropAll()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (empty())
         return 0;
 
@@ -255,7 +255,7 @@ int CRcvBuffer::dropAll()
 }
 
 int CRcvBuffer::dropMessage(int32_t seqnolo, int32_t seqnohi, int32_t msgno, DropActionIfExists actionOnExisting)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     IF_RCVBUF_DEBUG(ScopedLog scoped_log);
     IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::dropMessage: seqnolo " << seqnolo << " seqnohi " << seqnohi
         << ", msgno " << msgno << " m_iStartSeqNo " << m_iStartSeqNo);
@@ -376,7 +376,7 @@ int CRcvBuffer::dropMessage(int32_t seqnolo, int32_t seqnohi, int32_t msgno, Dro
 }
 
 int CRcvBuffer::readMessage(char* data, size_t len, SRT_MSGCTRL* msgctrl)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const bool canReadInOrder = hasReadableInorderPkts();
     if (!canReadInOrder && m_iFirstReadableOutOfOrder < 0)
     {
@@ -511,7 +511,7 @@ namespace {
 }
 
 int CRcvBuffer::readBufferTo(int len, copy_to_dst_f funcCopyToDst, void* arg)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int p = m_iStartPos;
     const int end_pos = m_iFirstNonreadPos;
 
@@ -587,22 +587,22 @@ int CRcvBuffer::readBufferTo(int len, copy_to_dst_f funcCopyToDst, void* arg)
 }
 
 int CRcvBuffer::readBuffer(char* dst, int len)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return readBufferTo(len, copyBytesToBuf, reinterpret_cast<void*>(dst));
 }
 
 int CRcvBuffer::readBufferToFile(fstream& ofs, int len)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return readBufferTo(len, writeBytesToFile, reinterpret_cast<void*>(&ofs));
 }
 
 bool CRcvBuffer::hasAvailablePackets() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return hasReadableInorderPkts() || (m_numOutOfOrderPackets > 0 && m_iFirstReadableOutOfOrder != -1);
 }
 
 int CRcvBuffer::getRcvDataSize() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iFirstNonreadPos >= m_iStartPos)
         return m_iFirstNonreadPos - m_iStartPos;
 
@@ -610,7 +610,7 @@ int CRcvBuffer::getRcvDataSize() const
 }
 
 int CRcvBuffer::getTimespan_ms() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (!m_tsbpd.isEnabled())
         return 0;
 
@@ -652,7 +652,7 @@ int CRcvBuffer::getTimespan_ms() const
 }
 
 int CRcvBuffer::getRcvDataSize(int& bytes, int& timespan) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock lck(m_BytesCountLock);
     bytes = m_iBytesCount;
     timespan = getTimespan_ms();
@@ -660,7 +660,7 @@ int CRcvBuffer::getRcvDataSize(int& bytes, int& timespan) const
 }
 
 CRcvBuffer::PacketInfo CRcvBuffer::getFirstValidPacketInfo() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const int end_pos = incPos(m_iStartPos, m_iMaxPosOff);
     for (int i = m_iStartPos; i != end_pos; i = incPos(i))
     {
@@ -678,20 +678,20 @@ CRcvBuffer::PacketInfo CRcvBuffer::getFirstValidPacketInfo() const
 }
 
 std::pair<int, int> CRcvBuffer::getAvailablePacketsRange() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const int seqno_last = CSeqNo::incseq(m_iStartSeqNo, (int) countReadable());
     return std::pair<int, int>(m_iStartSeqNo, seqno_last);
 }
 
 size_t CRcvBuffer::countReadable() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iFirstNonreadPos >= m_iStartPos)
         return m_iFirstNonreadPos - m_iStartPos;
     return m_szSize + m_iFirstNonreadPos - m_iStartPos;
 }
 
 bool CRcvBuffer::isRcvDataReady(time_point time_now) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const bool haveInorderPackets = hasReadableInorderPkts();
     if (!m_tsbpd.isEnabled())
     {
@@ -711,7 +711,7 @@ bool CRcvBuffer::isRcvDataReady(time_point time_now) const
 }
 
 CRcvBuffer::PacketInfo CRcvBuffer::getFirstReadablePacketInfo(time_point time_now) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     const PacketInfo unreadableInfo    = {SRT_SEQNO_NONE, false, time_point()};
     const bool       hasInorderPackets = hasReadableInorderPkts();
 
@@ -746,7 +746,7 @@ CRcvBuffer::PacketInfo CRcvBuffer::getFirstReadablePacketInfo(time_point time_no
 }
 
 void CRcvBuffer::countBytes(int pkts, int bytes)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     ScopedLock lock(m_BytesCountLock);
     m_iBytesCount += bytes; // added or removed bytes from rcv buffer
     m_iPktsCount  += pkts;
@@ -755,7 +755,7 @@ void CRcvBuffer::countBytes(int pkts, int bytes)
 }
 
 void CRcvBuffer::releaseUnitInPos(int pos)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     CUnit* tmp = m_entries[pos].pUnit;
     m_entries[pos] = Entry(); // pUnit = NULL; status = Empty
     if (tmp != NULL)
@@ -763,7 +763,7 @@ void CRcvBuffer::releaseUnitInPos(int pos)
 }
 
 bool CRcvBuffer::dropUnitInPos(int pos)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (!m_entries[pos].pUnit)
         return false;
     if (m_tsbpd.isEnabled())
@@ -781,7 +781,7 @@ bool CRcvBuffer::dropUnitInPos(int pos)
 }
 
 void CRcvBuffer::releaseNextFillerEntries()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int pos = m_iStartPos;
     while (m_entries[pos].status == EntryState_Read || m_entries[pos].status == EntryState_Drop)
     {
@@ -797,7 +797,7 @@ void CRcvBuffer::releaseNextFillerEntries()
 
 // TODO: Is this function complete? There are some comments left inside.
 void CRcvBuffer::updateNonreadPos()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iMaxPosOff == 0)
         return;
 
@@ -832,7 +832,7 @@ void CRcvBuffer::updateNonreadPos()
 }
 
 int CRcvBuffer::findLastMessagePkt()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     for (int i = m_iStartPos; i != m_iFirstNonreadPos; i = incPos(i))
     {
         SRT_ASSERT(m_entries[i].pUnit);
@@ -847,7 +847,7 @@ int CRcvBuffer::findLastMessagePkt()
 }
 
 void CRcvBuffer::onInsertNotInOrderPacket(int insertPos)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_numOutOfOrderPackets == 0)
         return;
 
@@ -891,7 +891,7 @@ void CRcvBuffer::onInsertNotInOrderPacket(int insertPos)
 }
 
 bool CRcvBuffer::checkFirstReadableOutOfOrder()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_numOutOfOrderPackets <= 0 || m_iFirstReadableOutOfOrder < 0 || m_iMaxPosOff == 0)
         return false;
 
@@ -919,7 +919,7 @@ bool CRcvBuffer::checkFirstReadableOutOfOrder()
 }
 
 void CRcvBuffer::updateFirstReadableOutOfOrder()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (hasReadableInorderPkts() || m_numOutOfOrderPackets <= 0 || m_iFirstReadableOutOfOrder >= 0)
         return;
 
@@ -982,7 +982,7 @@ void CRcvBuffer::updateFirstReadableOutOfOrder()
 }
 
 int CRcvBuffer::scanNotInOrderMessageRight(const int startPos, int msgNo) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // Search further packets to the right.
     // First check if there are packets to the right.
     const int lastPos = (m_iStartPos + m_iMaxPosOff - 1) % m_szSize;
@@ -1013,7 +1013,7 @@ int CRcvBuffer::scanNotInOrderMessageRight(const int startPos, int msgNo) const
 }
 
 int CRcvBuffer::scanNotInOrderMessageLeft(const int startPos, int msgNo) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // Search preceding packets to the left.
     // First check if there are packets to the left.
     if (startPos == m_iStartPos)
@@ -1044,12 +1044,12 @@ int CRcvBuffer::scanNotInOrderMessageLeft(const int startPos, int msgNo) const
 }
 
 bool CRcvBuffer::addRcvTsbPdDriftSample(uint32_t usTimestamp, const time_point& tsPktArrival, int usRTTSample)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return m_tsbpd.addDriftSample(usTimestamp, tsPktArrival, usRTTSample);
 }
 
 void CRcvBuffer::setTsbPdMode(const steady_clock::time_point& timebase, bool wrap, duration delay)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     m_tsbpd.setTsbPdMode(timebase, wrap, delay);
 }
 
@@ -1057,29 +1057,29 @@ void CRcvBuffer::applyGroupTime(const steady_clock::time_point& timebase,
     bool                            wrp,
     uint32_t                        delay,
     const steady_clock::duration& udrift)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     m_tsbpd.applyGroupTime(timebase, wrp, delay, udrift);
 }
 
 void CRcvBuffer::applyGroupDrift(const steady_clock::time_point& timebase,
     bool                            wrp,
     const steady_clock::duration& udrift)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     m_tsbpd.applyGroupDrift(timebase, wrp, udrift);
 }
 
 CRcvBuffer::time_point CRcvBuffer::getTsbPdTimeBase(uint32_t usPktTimestamp) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return m_tsbpd.getTsbPdTimeBase(usPktTimestamp);
 }
 
 void CRcvBuffer::updateTsbPdTimeBase(uint32_t usPktTimestamp)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     m_tsbpd.updateTsbPdTimeBase(usPktTimestamp);
 }
 
 string CRcvBuffer::strFullnessState(int iFirstUnackSeqNo, const time_point& tsNow) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     stringstream ss;
 
     ss << "iFirstUnackSeqNo=" << iFirstUnackSeqNo << " m_iStartSeqNo=" << m_iStartSeqNo
@@ -1115,13 +1115,13 @@ string CRcvBuffer::strFullnessState(int iFirstUnackSeqNo, const time_point& tsNo
 }
 
 CRcvBuffer::time_point CRcvBuffer::getPktTsbPdTime(uint32_t usPktTimestamp) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return m_tsbpd.getPktTsbPdTime(usPktTimestamp);
 }
 
 /* Return moving average of acked data pkts, bytes, and timespan (ms) of the receive buffer */
 int CRcvBuffer::getRcvAvgDataSize(int& bytes, int& timespan)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // Average number of packets and timespan could be small,
     // so rounding is beneficial, while for the number of
     // bytes in the buffer is a higher value, so rounding can be omitted,
@@ -1133,7 +1133,7 @@ int CRcvBuffer::getRcvAvgDataSize(int& bytes, int& timespan)
 
 /* Update moving average of acked data pkts, bytes, and timespan (ms) of the receive buffer */
 void CRcvBuffer::updRcvAvgDataSize(const steady_clock::time_point& now)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (!m_mavg.isTimeToUpdate(now))
         return;
 

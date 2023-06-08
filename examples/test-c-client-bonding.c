@@ -204,7 +204,7 @@ int main(int argc, char** argv)
     // are established, and if not, repeat it after srt_epoll_wait for the
     // SRT_EPOLL_UPDATE signal.
     printf("sleeping 1s to make it probable all links are established\n");
-    sleep(1);
+    usleep(1000000);
 
     grpdata = calloc(nmemb, sizeof (SRT_SOCKGROUPDATA));
 

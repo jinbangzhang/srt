@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     }
 
 
-    sleep(1); // 1 second to give it enough time to receive all messages
+    usleep(1000000); // 1 second to give it enough time to receive all messages
     printf("srt close\n");
     st = srt_close(ss);
     if (st == SRT_ERROR)

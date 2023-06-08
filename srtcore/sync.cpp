@@ -182,7 +182,7 @@ srt::sync::CEvent g_Sync;
 ////////////////////////////////////////////////////////////////////////////////
 
 srt::sync::CTimer::CTimer()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 }
 
 
@@ -192,7 +192,7 @@ srt::sync::CTimer::~CTimer()
 
 
 bool srt::sync::CTimer::sleep_until(TimePoint<steady_clock> tp)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // The class member m_sched_time can be used to interrupt the sleep.
     // Refer to Timer::interrupt().
     enterCS(m_event.mutex());
@@ -255,7 +255,7 @@ bool srt::sync::CTimer::sleep_until(TimePoint<steady_clock> tp)
 
 
 void srt::sync::CTimer::interrupt()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     UniqueLock lck(m_event.mutex());
     m_tsSchedTime = steady_clock::now();
     m_event.notify_all();
@@ -269,12 +269,12 @@ void srt::sync::CTimer::tick()
 
 
 void srt::sync::CGlobEvent::triggerEvent()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return g_Sync.notify_one();
 }
 
 bool srt::sync::CGlobEvent::waitForEvent()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     return g_Sync.lock_wait_for(milliseconds_from(10));
 }
 

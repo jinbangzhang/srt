@@ -88,7 +88,7 @@ static const int INVALID_SOCKET = -1;
 
 // Set the CLOEXEC flag using ioctl() function
 static int set_cloexec(int fd, int set)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     int r;
 
     do
@@ -142,7 +142,7 @@ srt::CChannel::CChannel()
 #ifdef SRT_ENABLE_PKTINFO
     , m_bBindMasked(true)
 #endif
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 #ifdef SRT_ENABLE_PKTINFO
    // Do the check for ancillary data buffer size, kinda assertion
    static const size_t CMSG_MAX_SPACE = sizeof (CMSGNodeIPv4) + sizeof (CMSGNodeIPv6);
@@ -161,7 +161,7 @@ srt::CChannel::CChannel()
 srt::CChannel::~CChannel() {}
 
 void srt::CChannel::createSocket(int family)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 #if ENABLE_SOCK_CLOEXEC
     bool cloexec_flag = false;
     // construct an socket
@@ -215,7 +215,7 @@ void srt::CChannel::createSocket(int family)
 }
 
 void srt::CChannel::open(const sockaddr_any& addr)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     createSocket(addr.family());
     socklen_t namelen = addr.size();
 
@@ -232,7 +232,7 @@ void srt::CChannel::open(const sockaddr_any& addr)
 }
 
 void srt::CChannel::open(int family)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     createSocket(family);
 
     // sendto or WSASendTo will also automatically bind the socket
@@ -280,7 +280,7 @@ void srt::CChannel::open(int family)
 }
 
 void srt::CChannel::attach(UDPSOCKET udpsock, const sockaddr_any& udpsocks_addr)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // The getsockname() call is done before calling it and the
     // result is placed into udpsocks_addr.
     m_iSocket  = udpsock;
@@ -289,91 +289,7 @@ void srt::CChannel::attach(UDPSOCKET udpsock, const sockaddr_any& udpsocks_addr)
 }
 
 void srt::CChannel::setUDPSockOpt()
-{
-#if defined(SUNOS)
-    {
-        socklen_t optSize;
-        // Retrieve starting SND/RCV Buffer sizes.
-        int startRCVBUF = 0;
-        optSize         = sizeof(startRCVBUF);
-        if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (void*)&startRCVBUF, &optSize))
-        {
-            startRCVBUF = -1;
-        }
-        int startSNDBUF = 0;
-        optSize         = sizeof(startSNDBUF);
-        if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (void*)&startSNDBUF, &optSize))
-        {
-            startSNDBUF = -1;
-        }
-
-        // SunOS will fail setsockopt() if the requested buffer size exceeds system
-        //   maximum value.
-        // However, do not reduce the buffer size.
-        const int maxsize = 64000;
-        if (0 !=
-            ::setsockopt(
-                m_iSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&m_mcfg.iUDPRcvBufSize, sizeof m_mcfg.iUDPRcvBufSize))
-        {
-            int currentRCVBUF = 0;
-            optSize           = sizeof(currentRCVBUF);
-            if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (void*)&currentRCVBUF, &optSize))
-            {
-                currentRCVBUF = -1;
-            }
-            if (maxsize > currentRCVBUF)
-            {
-                ::setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&maxsize, sizeof maxsize);
-            }
-        }
-        if (0 !=
-            ::setsockopt(
-                m_iSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&m_mcfg.iUDPSndBufSize, sizeof m_mcfg.iUDPSndBufSize))
-        {
-            int currentSNDBUF = 0;
-            optSize           = sizeof(currentSNDBUF);
-            if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (void*)&currentSNDBUF, &optSize))
-            {
-                currentSNDBUF = -1;
-            }
-            if (maxsize > currentSNDBUF)
-            {
-                ::setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&maxsize, sizeof maxsize);
-            }
-        }
-
-        // Retrieve ending SND/RCV Buffer sizes.
-        int endRCVBUF = 0;
-        optSize       = sizeof(endRCVBUF);
-        if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (void*)&endRCVBUF, &optSize))
-        {
-            endRCVBUF = -1;
-        }
-        int endSNDBUF = 0;
-        optSize       = sizeof(endSNDBUF);
-        if (0 != ::getsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (void*)&endSNDBUF, &optSize))
-        {
-            endSNDBUF = -1;
-        }
-        LOGC(kmlog.Debug,
-             log << "SO_RCVBUF:"
-                 << " startRCVBUF=" << startRCVBUF << " m_mcfg.iUDPRcvBufSize=" << m_mcfg.iUDPRcvBufSize
-                 << " endRCVBUF=" << endRCVBUF);
-        LOGC(kmlog.Debug,
-             log << "SO_SNDBUF:"
-                 << " startSNDBUF=" << startSNDBUF << " m_mcfg.iUDPSndBufSize=" << m_mcfg.iUDPSndBufSize
-                 << " endSNDBUF=" << endSNDBUF);
-    }
-#elif defined(BSD) || TARGET_OS_MAC
-    // BSD system will fail setsockopt if the requested buffer size exceeds system maximum value
-    int maxsize = 64000;
-    if (0 != ::setsockopt(
-                 m_iSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&m_mcfg.iUDPRcvBufSize, sizeof m_mcfg.iUDPRcvBufSize))
-        ::setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&maxsize, sizeof maxsize);
-    if (0 != ::setsockopt(
-                 m_iSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&m_mcfg.iUDPSndBufSize, sizeof m_mcfg.iUDPSndBufSize))
-        ::setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&maxsize, sizeof maxsize);
-#else
+{HLOGC(srt_logging::inlog.Debug, log);
     // for other systems, if requested is greated than maximum, the maximum value will be automactally used
     if ((0 !=
          ::setsockopt(
@@ -381,7 +297,6 @@ void srt::CChannel::setUDPSockOpt()
         (0 != ::setsockopt(
                   m_iSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&m_mcfg.iUDPSndBufSize, sizeof m_mcfg.iUDPSndBufSize)))
         throw CUDTException(MJ_SETUP, MN_NORES, NET_ERROR);
-#endif
 
     if (m_mcfg.iIpTTL != -1)
     {
@@ -521,7 +436,7 @@ void srt::CChannel::setUDPSockOpt()
 }
 
 void srt::CChannel::close() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 #ifndef _WIN32
     ::close(m_iSocket);
 #else
@@ -530,31 +445,31 @@ void srt::CChannel::close() const
 }
 
 int srt::CChannel::getSndBufSize()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     socklen_t size = (socklen_t)sizeof m_mcfg.iUDPSndBufSize;
     ::getsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char*)&m_mcfg.iUDPSndBufSize, &size);
     return m_mcfg.iUDPSndBufSize;
 }
 
 int srt::CChannel::getRcvBufSize()
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     socklen_t size = (socklen_t)sizeof m_mcfg.iUDPRcvBufSize;
     ::getsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&m_mcfg.iUDPRcvBufSize, &size);
     return m_mcfg.iUDPRcvBufSize;
 }
 
 void srt::CChannel::setConfig(const CSrtMuxerConfig& config)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     m_mcfg = config;
 }
 
 void srt::CChannel::getSocketOption(int level, int option, char* pw_dataptr, socklen_t& w_len, int& w_status)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     w_status = ::getsockopt(m_iSocket, level, option, (pw_dataptr), (&w_len));
 }
 
 int srt::CChannel::getIpTTL() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iSocket == INVALID_SOCKET)
         throw CUDTException(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -577,7 +492,7 @@ int srt::CChannel::getIpTTL() const
 }
 
 int srt::CChannel::getIpToS() const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iSocket == INVALID_SOCKET)
         throw CUDTException(MJ_NOTSUP, MN_INVAL, 0);
 
@@ -603,7 +518,7 @@ int srt::CChannel::getIpToS() const
 
 #ifdef SRT_ENABLE_BINDTODEVICE
 bool srt::CChannel::getBind(char* dst, size_t len)
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     if (m_iSocket == INVALID_SOCKET)
         return false; // No socket to get data from
 
@@ -621,7 +536,7 @@ bool srt::CChannel::getBind(char* dst, size_t len)
 #endif
 
 int srt::CChannel::ioctlQuery(int type SRT_ATR_UNUSED) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 #if defined(unix) || defined(__APPLE__)
     int value = 0;
     int res   = ::ioctl(m_iSocket, type, &value);
@@ -632,7 +547,7 @@ int srt::CChannel::ioctlQuery(int type SRT_ATR_UNUSED) const
 }
 
 int srt::CChannel::sockoptQuery(int level SRT_ATR_UNUSED, int option SRT_ATR_UNUSED) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
 #if defined(unix) || defined(__APPLE__)
     int       value = 0;
     socklen_t len   = sizeof(int);
@@ -644,7 +559,7 @@ int srt::CChannel::sockoptQuery(int level SRT_ATR_UNUSED, int option SRT_ATR_UNU
 }
 
 void srt::CChannel::getSockAddr(sockaddr_any& w_addr) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     // The getsockname function requires only to have enough target
     // space to copy the socket name, it doesn't have to be correlated
     // with the address family. So the maximum space for any name,
@@ -655,7 +570,7 @@ void srt::CChannel::getSockAddr(sockaddr_any& w_addr) const
 }
 
 void srt::CChannel::getPeerAddr(sockaddr_any& w_addr) const
-{
+{HLOGC(srt_logging::inlog.Debug, log);
     socklen_t namelen = (socklen_t)w_addr.storage_size();
     ::getpeername(m_iSocket, (w_addr.get()), (&namelen));
     w_addr.len = namelen;

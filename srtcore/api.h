@@ -96,7 +96,7 @@ public:
         , m_AcceptLock()
         , m_uiBackLog(0)
         , m_iMuxID(-1)
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         construct();
     }
 
@@ -115,7 +115,7 @@ public:
         , m_AcceptLock()
         , m_uiBackLog(0)
         , m_iMuxID(-1)
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         construct();
     }
 

@@ -39,6 +39,7 @@ written by
 #ifdef __GNUC__
 #define PRINTF_LIKE __attribute__((format(printf,2,3)))
 #else
+#define __PRETTY_FUNCTION__ __FUNCTION__
 #define PRINTF_LIKE 
 #endif
 
@@ -54,7 +55,7 @@ written by
 #define LOGC(logdes, args) if (logdes.CheckEnabled()) \
 { \
     srt_logging::LogDispatcher::Proxy log(logdes); \
-    log.setloc(__FILE__, __LINE__, __FUNCTION__); \
+    log.setloc(__FILE__, __LINE__, __PRETTY_FUNCTION__); \
     const srt_logging::LogDispatcher::Proxy& log_prox SRT_ATR_UNUSED = args; \
 }
 
@@ -117,7 +118,7 @@ struct LogConfig
     int flags;
 
     LogConfig(const fa_bitset_t& efa,
-            LogLevel::type l = LogLevel::warning,
+            LogLevel::type l = LogLevel::debug,
             std::ostream* ls = &std::cerr)
         : enabled_fa(efa)
         , max_level(l)
@@ -494,6 +495,7 @@ inline void LogDispatcher::SendLogLine(const char* file, int line, const std::st
     }
     else if ( src_config->log_stream )
     {
+        (*src_config->log_stream) << file << ":" << line << " " << area << " ";
         (*src_config->log_stream) << msg;
         (*src_config->log_stream).flush();
     }
