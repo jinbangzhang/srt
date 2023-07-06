@@ -1,12 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2019 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
 #include "platform_sys.h"
 
 #include <iomanip>
@@ -182,7 +173,7 @@ srt::sync::CEvent g_Sync;
 ////////////////////////////////////////////////////////////////////////////////
 
 srt::sync::CTimer::CTimer()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 }
 
 
@@ -223,7 +214,7 @@ bool srt::sync::CTimer::sleep_until(TimePoint<steady_clock> tp)
         td_wait -= td_threshold;
         m_event.lock_wait_for(td_wait);
 #else
-        m_event.lock_wait_until(m_tsSchedTime);
+        HLOGC(srt_logging::inlog.Debug, log);m_event.lock_wait_until(m_tsSchedTime);
 #endif // USE_BUSY_WAITING
 
         cur_tp = steady_clock::now();

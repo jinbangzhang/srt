@@ -1,12 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2021 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
 #include "tsbpd_time.h"
 
 #include "logging.h"
@@ -104,7 +95,7 @@ drift_logger g_drift_logger;
 #endif // SRT_DEBUG_TRACE_DRIFT
 
 bool CTsbpdTime::addDriftSample(uint32_t usPktTimestamp, const time_point& tsPktArrival, int usRTTSample)
-{
+{HLOGC(brlog.Debug, log);
     if (!m_bTsbPdMode)
         return false;
 
@@ -167,14 +158,14 @@ void CTsbpdTime::setTsbPdMode(const steady_clock::time_point& timebase, bool wra
     //
     // This function is called in the HSREQ reception handler only.
     m_tsTsbPdTimeBase = timebase;
-    m_tdTsbPdDelay    = delay;
+    m_tdTsbPdDelay    = delay;HLOGC(brlog.Debug, log << m_tsTsbPdTimeBase.time_since_epoch().count() << " " << m_tdTsbPdDelay.count());
 }
 
 void CTsbpdTime::applyGroupTime(const steady_clock::time_point& timebase,
                                 bool                            wrp,
                                 uint32_t                        delay,
                                 const steady_clock::duration&   udrift)
-{
+{HLOGC(brlog.Debug, log);
     // Same as setTsbPdMode, but predicted to be used for group members.
     // This synchronizes the time from the INTERNAL TIMEBASE of an existing
     // socket's internal timebase. This is required because the initial time
@@ -195,7 +186,7 @@ void CTsbpdTime::applyGroupTime(const steady_clock::time_point& timebase,
 void CTsbpdTime::applyGroupDrift(const steady_clock::time_point& timebase,
                                  bool                            wrp,
                                  const steady_clock::duration&   udrift)
-{
+{HLOGC(brlog.Debug, log);
     // This is only when a drift was updated on one of the group members.
     HLOGC(brlog.Debug,
           log << "rcv-buffer: group synch uDRIFT: " << m_DriftTracer.drift() << " -> " << FormatDuration(udrift)
@@ -215,7 +206,7 @@ CTsbpdTime::time_point CTsbpdTime::getTsbPdTimeBase(uint32_t timestamp_us) const
     const int64_t carryover_us =
         (m_bTsbPdWrapCheck && timestamp_us <= 2 * TSBPD_WRAP_PERIOD) ? int64_t(CPacket::MAX_TIMESTAMP) + 1 : 0;
 
-    return (m_tsTsbPdTimeBase + microseconds_from(carryover_us));
+    LOGC(tslog.Debug, log << carryover_us);return (m_tsTsbPdTimeBase + microseconds_from(carryover_us));
 }
 
 CTsbpdTime::time_point CTsbpdTime::getPktTsbPdTime(uint32_t usPktTimestamp) const
@@ -229,7 +220,7 @@ CTsbpdTime::time_point CTsbpdTime::getPktTsbPdBaseTime(uint32_t usPktTimestamp) 
 }
 
 void CTsbpdTime::updateTsbPdTimeBase(uint32_t usPktTimestamp)
-{
+{HLOGC(brlog.Debug, log);
     if (m_bTsbPdWrapCheck)
     {
         // Wrap check period.
@@ -257,7 +248,7 @@ void CTsbpdTime::updateTsbPdTimeBase(uint32_t usPktTimestamp)
 }
 
 void CTsbpdTime::getInternalTimeBase(time_point& w_tb, bool& w_wrp, duration& w_udrift) const
-{
+{HLOGC(brlog.Debug, log);
     ScopedLock lck(m_mtxRW);
     w_tb     = m_tsTsbPdTimeBase;
     w_udrift = microseconds_from(m_DriftTracer.drift());

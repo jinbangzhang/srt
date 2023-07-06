@@ -1,55 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
-/*****************************************************************************
-Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above
-  copyright notice, this list of conditions and the
-  following disclaimer.
-
-* Redistributions in binary form must reproduce the
-  above copyright notice, this list of conditions
-  and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the University of Illinois
-  nor the names of its contributors may be used to
-  endorse or promote products derived from this
-  software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-****************************************************************************/
-
-/****************************************************************************
-written by
-   Yunhong Gu, last updated 01/27/2011
-modified by
-   Haivision Systems Inc.
-*****************************************************************************/
-
 #include "platform_sys.h"
 
 #include <iostream>
@@ -142,7 +90,7 @@ srt::CChannel::CChannel()
 #ifdef SRT_ENABLE_PKTINFO
     , m_bBindMasked(true)
 #endif
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 #ifdef SRT_ENABLE_PKTINFO
    // Do the check for ancillary data buffer size, kinda assertion
    static const size_t CMSG_MAX_SPACE = sizeof (CMSGNodeIPv4) + sizeof (CMSGNodeIPv6);
@@ -161,7 +109,7 @@ srt::CChannel::CChannel()
 srt::CChannel::~CChannel() {}
 
 void srt::CChannel::createSocket(int family)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 #if ENABLE_SOCK_CLOEXEC
     bool cloexec_flag = false;
     // construct an socket
@@ -215,7 +163,7 @@ void srt::CChannel::createSocket(int family)
 }
 
 void srt::CChannel::open(const sockaddr_any& addr)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     createSocket(addr.family());
     socklen_t namelen = addr.size();
 
@@ -232,7 +180,7 @@ void srt::CChannel::open(const sockaddr_any& addr)
 }
 
 void srt::CChannel::open(int family)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     createSocket(family);
 
     // sendto or WSASendTo will also automatically bind the socket
@@ -289,7 +237,7 @@ void srt::CChannel::attach(UDPSOCKET udpsock, const sockaddr_any& udpsocks_addr)
 }
 
 void srt::CChannel::setUDPSockOpt()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // for other systems, if requested is greated than maximum, the maximum value will be automactally used
     if ((0 !=
          ::setsockopt(
@@ -459,7 +407,7 @@ int srt::CChannel::getRcvBufSize()
 }
 
 void srt::CChannel::setConfig(const CSrtMuxerConfig& config)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_mcfg = config;
 }
 
@@ -559,7 +507,7 @@ int srt::CChannel::sockoptQuery(int level SRT_ATR_UNUSED, int option SRT_ATR_UNU
 }
 
 void srt::CChannel::getSockAddr(sockaddr_any& w_addr) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // The getsockname function requires only to have enough target
     // space to copy the socket name, it doesn't have to be correlated
     // with the address family. So the maximum space for any name,

@@ -1,18 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- * 
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * 
- */
-
-/*****************************************************************************
-written by
-   Haivision Systems Inc.
- *****************************************************************************/
-
 #ifndef INC_SRT_LOGGING_H
 #define INC_SRT_LOGGING_H
 
@@ -495,7 +480,7 @@ inline void LogDispatcher::SendLogLine(const char* file, int line, const std::st
     }
     else if ( src_config->log_stream )
     {
-        (*src_config->log_stream) << file << ":" << line << " " << area << " ";
+        (*src_config->log_stream) << file << ":" << line << " " << "\033[1;31m" << area << "\033[0m" << " ";
         (*src_config->log_stream) << msg;
         (*src_config->log_stream).flush();
     }

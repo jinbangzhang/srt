@@ -1,55 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
-/*****************************************************************************
-Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above
-  copyright notice, this list of conditions and the
-  following disclaimer.
-
-* Redistributions in binary form must reproduce the
-  above copyright notice, this list of conditions
-  and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the University of Illinois
-  nor the names of its contributors may be used to
-  endorse or promote products derived from this
-  software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
-
-/*****************************************************************************
-written by
-   Yunhong Gu, last updated 03/12/2011
-modified by
-   Haivision Systems Inc.
-*****************************************************************************/
-
 #include "platform_sys.h"
 
 #include <cmath>
@@ -77,7 +25,7 @@ CSndBuffer::CSndBuffer(int size, int maxpld, int authtag)
     , m_iAuthTagSize(authtag)
     , m_iCount(0)
     , m_iBytesCount(0)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // initial physical buffer of "size"
     m_pBuffer           = new Buffer;
     m_pBuffer->m_pcData = new char[m_iSize * m_iBlockLen];
@@ -131,7 +79,7 @@ CSndBuffer::~CSndBuffer()
 }
 
 void CSndBuffer::addBuffer(const char* data, int len, SRT_MSGCTRL& w_mctrl)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     int32_t& w_msgno     = w_mctrl.msgno;
     int32_t& w_seqno     = w_mctrl.pktseq;
     int64_t& w_srctime   = w_mctrl.srctime;
@@ -218,8 +166,8 @@ void CSndBuffer::addBuffer(const char* data, int len, SRT_MSGCTRL& w_mctrl)
     }
     m_pLastBlock = s;
 
-    m_iCount += iNumBlocks;
-    m_iBytesCount += len;
+    m_iCount += iNumBlocks;HLOGC(srt_logging::inlog.Debug, log << m_iCount);
+    m_iBytesCount += len;HLOGC(srt_logging::inlog.Debug, log << m_iBytesCount);
 
     m_rateEstimator.updateInputRate(m_tsLastOriginTime, iNumBlocks, len);
     updAvgBufSize(m_tsLastOriginTime);
@@ -305,13 +253,13 @@ int CSndBuffer::addBufferFromFile(fstream& ifs, int len)
 }
 
 int CSndBuffer::readData(CPacket& w_packet, steady_clock::time_point& w_srctime, int kflgs, int& w_seqnoinc)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     int readlen = 0;
     w_seqnoinc = 0;
 
     ScopedLock bufferguard(m_BufLock);
     while (m_pCurrBlock != m_pLastBlock)
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         // Make the packet REFLECT the data stored in the buffer.
         w_packet.m_pcData = m_pCurrBlock->m_pcData;
         readlen = m_pCurrBlock->m_iLength;
@@ -363,7 +311,7 @@ int CSndBuffer::readData(CPacket& w_packet, steady_clock::time_point& w_srctime,
 }
 
 CSndBuffer::time_point CSndBuffer::peekNextOriginal() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock bufferguard(m_BufLock);
     if (m_pCurrBlock == m_pLastBlock)
         return time_point();
@@ -548,23 +496,23 @@ void CSndBuffer::ackData(int offset)
 }
 
 int CSndBuffer::getCurrBufSize() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{HLOGC(srt_logging::inlog.Debug, log << m_iCount);
     return m_iCount;
 }
 
 int CSndBuffer::getMaxPacketLen() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     return m_iBlockLen - m_iAuthTagSize;
 }
 
 int CSndBuffer::countNumPacketsRequired(int iPldLen) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     const int iPktLen = getMaxPacketLen();
     return countNumPacketsRequired(iPldLen, iPktLen);
 }
 
 int CSndBuffer::countNumPacketsRequired(int iPldLen, int iPktLen) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     return (iPldLen + iPktLen - 1) / iPktLen;
 }
 
@@ -592,7 +540,7 @@ int CSndBuffer::getAvgBufSize(int& w_bytes, int& w_tsp)
 }
 
 void CSndBuffer::updAvgBufSize(const steady_clock::time_point& now)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     if (!m_mavg.isTimeToUpdate(now))
         return;
 
@@ -603,7 +551,7 @@ void CSndBuffer::updAvgBufSize(const steady_clock::time_point& now)
 }
 
 int CSndBuffer::getCurrBufSize(int& w_bytes, int& w_timespan) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     w_bytes = m_iBytesCount;
     /*
      * Timespan can be less then 1000 us (1 ms) if few packets.
@@ -616,7 +564,7 @@ int CSndBuffer::getCurrBufSize(int& w_bytes, int& w_timespan) const
 }
 
 CSndBuffer::duration CSndBuffer::getBufferingDelay(const time_point& tnow) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock lck(m_BufLock);
     SRT_ASSERT(m_pFirstBlock);
     if (m_iCount == 0)

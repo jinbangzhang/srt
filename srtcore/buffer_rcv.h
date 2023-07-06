@@ -1,13 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2020 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
 #ifndef INC_SRT_BUFFER_RCV_H
 #define INC_SRT_BUFFER_RCV_H
 
@@ -335,9 +325,9 @@ private:
     CUnitQueue*  m_pUnitQueue; // the shared unit queue
 
     int m_iStartSeqNo;
-    int m_iStartPos;        // the head position for I/O (inclusive)
+    int m_iStartPos;        // the head position for I/O (inclusive) 读索引，m_iStartSeqNo与之一一对应
     int m_iFirstNonreadPos; // First position that can't be read (<= m_iLastAckPos)
-    int m_iMaxPosOff;       // the furthest data position
+    int m_iMaxPosOff;       // the furthest data position 队列中还未读取的个数
     int m_iNotch;           // the starting read point of the first unit
 
     size_t m_numOutOfOrderPackets;  // The number of stored packets with "inorder" flag set to false

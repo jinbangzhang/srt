@@ -1,12 +1,3 @@
-
- /*
-  WARNING: Generated from ../scripts/generate-error-types.tcl
-
-  DO NOT MODIFY.
-
-  Copyright applies as per the generator script.
- */
-
 #include <cstddef>
 
 

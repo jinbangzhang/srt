@@ -33,7 +33,6 @@ struct CSNode
 
     sync::atomic<int> m_iHeapLoc; // location on the heap, -1 means not on the heap
 };
-
 CSndUList 发送数组，元素是CSNode*，带时间戳排序
 CSNode*  CSNode* CSNode* 512个
 
@@ -48,72 +47,73 @@ struct CRNode
 
     sync::atomic<bool> m_bOnList; // if the node is already on the list
 };
-
 CRcvUList 双向链表，元素是CRNode*，插入到尾部
 
-    struct Buffer
+
+struct Buffer
+{
+    char*   m_pcData; // buffer
+    int     m_iSize;  // size
+    Buffer* m_pNext;  // next buffer
+} * m_pBuffer;        // physical buffer
+
+struct Block
+{
+    char* m_pcData;  // pointer to the data block
+    int   m_iLength; // payload length of the block (excluding auth tag).
+
+    int32_t    m_iMsgNoBitset; // message number
+    int32_t    m_iSeqNo;       // sequence number for scheduling
+    time_point m_tsOriginTime; // block origin time (either provided from above or equals the time a message was submitted for sending.
+    time_point m_tsRexmitTime; // packet retransmission time
+    int        m_iTTL; // time to live (milliseconds)
+
+    Block* m_pNext; // next block
+
+    int32_t getMsgSeq()
     {
-        char*   m_pcData; // buffer
-        int     m_iSize;  // size
-        Buffer* m_pNext;  // next buffer
-    } * m_pBuffer;        // physical buffer
+        // NOTE: this extracts message ID with regard to REXMIT flag.
+        // This is valid only for message ID that IS GENERATED in this instance,
+        // not provided by the peer. This can be otherwise sent to the peer - it doesn't matter
+        // for the peer that it uses LESS bits to represent the message.
+        return m_iMsgNoBitset & MSGNO_SEQ::mask;
+    }
 
-    struct Block
-    {
-        char* m_pcData;  // pointer to the data block
-        int   m_iLength; // payload length of the block (excluding auth tag).
+} * m_pBlock, *m_pFirstBlock, *m_pCurrBlock读, *m_pLastBlock写;
 
-        int32_t    m_iMsgNoBitset; // message number
-        int32_t    m_iSeqNo;       // sequence number for scheduling
-        time_point m_tsOriginTime; // block origin time (either provided from above or equals the time a message was submitted for sending.
-        time_point m_tsRexmitTime; // packet retransmission time
-        int        m_iTTL; // time to live (milliseconds)
-
-        Block* m_pNext; // next block
-
-        int32_t getMsgSeq()
-        {
-            // NOTE: this extracts message ID with regard to REXMIT flag.
-            // This is valid only for message ID that IS GENERATED in this instance,
-            // not provided by the peer. This can be otherwise sent to the peer - it doesn't matter
-            // for the peer that it uses LESS bits to represent the message.
-            return m_iMsgNoBitset & MSGNO_SEQ::mask;
-        }
-
-    } * m_pBlock, *m_pFirstBlock, *m_pCurrBlock读, *m_pLastBlock写;
-
-   class CSndBuffer 单向环形链表 32个block为一个Buffer，Buffer是单向链表
+class CSndBuffer 单向环形链表 32个block为一个Buffer，Buffer是单向链表
 
 
-    struct Entry
-    {
-        Entry()
-            : pUnit(NULL)
-            , status(EntryState_Empty)
-        {}
+struct Entry
+{
+    Entry()
+        : pUnit(NULL)
+        , status(EntryState_Empty)
+    {}
 
-        CUnit*      pUnit;
-        EntryStatus status;
-    };
-    FixedArray<Entry> m_entries;
-    class CRcvBuffer 8192个Entry
-
-    struct Seq
-    {
-        int32_t seqstart; // sequence number starts
-        int32_t seqend;   // sequence number ends
-        int     inext;    // index of the next node in the list
-    } * m_caSeq;
-    数组 8192*2个Seq
-    class CSndLossList
+    CUnit*      pUnit;
+    EntryStatus status;
+};
+FixedArray<Entry> m_entries;
+class CRcvBuffer 8192个Entry
 
 
-    struct Seq
-    {
-        int32_t seqstart; // sequence number starts
-        int32_t seqend;   // sequence number ends
-        int     inext;    // index of the next node in the list
-        int     iprior;   // index of the previous node in the list
-    } * m_caSeq;
-    数组 25600个Seq
-    class CRcvLossList
+struct Seq
+{
+    int32_t seqstart; // sequence number starts
+    int32_t seqend;   // sequence number ends
+    int     inext;    // index of the next node in the list
+} * m_caSeq;
+数组 8192*2个Seq
+class CSndLossList
+
+
+struct Seq
+{
+    int32_t seqstart; // sequence number starts
+    int32_t seqend;   // sequence number ends
+    int     inext;    // index of the next node in the list
+    int     iprior;   // index of the previous node in the list
+} * m_caSeq;
+数组 25600个Seq
+class CRcvLossList

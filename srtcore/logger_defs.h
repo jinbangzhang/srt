@@ -1,12 +1,3 @@
-/*
-  WARNING: Generated from ../scripts/generate-logging-defs.tcl
-
-  DO NOT MODIFY.
-
-  Copyright applies as per the generator script.
- */
-
-
 #ifndef INC_SRT_LOGGER_DEFS_H
 #define INC_SRT_LOGGER_DEFS_H
 

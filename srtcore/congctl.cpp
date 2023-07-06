@@ -1,17 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- * 
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * 
- */
-
-
-// This is a controversial thing, so temporarily blocking
-//#define SRT_ENABLE_SYSTEMBUFFER_TRACE
-
 #include "platform_sys.h"
 
 
@@ -101,7 +87,7 @@ public:
     }
 
     bool checkTransArgs(SrtCongestion::TransAPI api, SrtCongestion::TransDir dir, const char* , size_t size, int , bool ) ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         if (api != SrtCongestion::STA_MESSAGE)
         {
             LOGC(cclog.Error, log << "LiveCC: invalid API use. Only sendmsg/recvmsg allowed.");
@@ -216,7 +202,7 @@ private:
     }
 
     SrtCongestion::RexmitMethod rexmitMethod() ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         return SrtCongestion::SRM_FASTREXMIT;
     }
 
@@ -284,7 +270,7 @@ public:
         , m_iAvgNAKNum(0)
         , m_iDecCount(0)
         , m_maxSR(0)
-    {
+    {HLOGC(cclog.Debug, log);
         // Note that this function is called at the moment of
         // calling m_Smoother.configure(this). It is placed more less
         // at the same position as the series-of-parameter-setting-then-init
@@ -303,7 +289,7 @@ public:
     }
 
     bool checkTransArgs(SrtCongestion::TransAPI, SrtCongestion::TransDir, const char*, size_t, int, bool) ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         // XXX
         // The FileCC has currently no restrictions, although it should be
         // rather required that the "message" mode or "buffer" mode be used on both sides the same.
@@ -315,7 +301,7 @@ public:
     /// In FileCC, treat non-full-payload as an end-of-message (stream)
     /// and request ACK to be sent immediately.
     bool needsQuickACK(const CPacket& pkt) ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         if (pkt.getLength() < m_parent->maxPayloadSize())
         {
             // This is not a regular fixed size packet...
@@ -327,7 +313,7 @@ public:
     }
 
     void updateBandwidth(int64_t maxbw, int64_t) ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         if (maxbw != 0)
         {
             m_maxSR = maxbw;
@@ -340,7 +326,7 @@ private:
     /// In slow start stage increase CWND. Leave slow start once maximum CWND is reached.
     /// In congestion avoidance stage adjust inter packet send interval value to achieve maximum rate.
     void onACK(ETransmissionEvent, EventVariant arg)
-    {
+    {HLOGC(cclog.Debug, log);
         const int ack = arg.get<EventVariant::ACK>();
 
         const steady_clock::time_point currtime = steady_clock::now();
@@ -467,7 +453,7 @@ private:
     /// reached the available bandwidth limit. Slowdown to avoid further losses.
     /// Leave the slow start stage if it was active.
     void onLossReport(ETransmissionEvent, EventVariant arg)
-    {
+    {HLOGC(cclog.Debug, log);
         const int32_t* losslist = arg.get_ptr();
         size_t losslist_size = arg.get_len();
 
@@ -570,7 +556,7 @@ private:
     /// @brief  On retransmission timeout leave slow start stage if it was active.
     /// @param arg EventVariant::STAGE to distinguish between INIT and actual RTO.
     void onRTO(ETransmissionEvent, EventVariant arg)
-    {
+    {HLOGC(cclog.Debug, log);
         ECheckTimerStage stg = arg.get<EventVariant::STAGE>();
 
         // TEV_INIT is in the beginning of checkTimers(), used
@@ -608,7 +594,7 @@ private:
     }
 
     SrtCongestion::RexmitMethod rexmitMethod() ATR_OVERRIDE
-    {
+    {HLOGC(cclog.Debug, log);
         return SrtCongestion::SRM_LATEREXMIT;
     }
 };

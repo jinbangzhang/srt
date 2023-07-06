@@ -1,48 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
-/*****************************************************************************
-Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above
-  copyright notice, this list of conditions and the
-  following disclaimer.
-
-* Redistributions in binary form must reproduce the
-  above copyright notice, this list of conditions
-  and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the University of Illinois
-  nor the names of its contributors may be used to
-  endorse or promote products derived from this
-  software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
-
 #include <cmath>
 #include <limits>
 #include "buffer_rcv.h"
@@ -131,7 +86,7 @@ CRcvBuffer::CRcvBuffer(int initSeqNo, size_t size, CUnitQueue* unitqueue, bool b
     , m_iBytesCount(0)
     , m_iPktsCount(0)
     , m_uAvgPayloadSz(SRT_LIVE_DEF_PLSIZE)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     SRT_ASSERT(size < size_t(std::numeric_limits<int>::max())); // All position pointers are integers
 }
 
@@ -149,25 +104,24 @@ CRcvBuffer::~CRcvBuffer()
 }
 
 int CRcvBuffer::insert(CUnit* unit)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     SRT_ASSERT(unit != NULL);
     const int32_t seqno  = unit->m_Packet.getSeqNo();
     const int     offset = CSeqNo::seqoff(m_iStartSeqNo, seqno);
 
-    IF_RCVBUF_DEBUG(ScopedLog scoped_log);
-    IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::insert: seqno " << seqno);
-    IF_RCVBUF_DEBUG(scoped_log.ss << " msgno " << unit->m_Packet.getMsgSeq(m_bPeerRexmitFlag));
-    IF_RCVBUF_DEBUG(scoped_log.ss << " m_iStartSeqNo " << m_iStartSeqNo << " offset " << offset);
+    HLOGC(rbuflog.Debug, log << "CRcvBuffer::insert: seqno " << seqno);
+    HLOGC(rbuflog.Debug, log << " msgno " << unit->m_Packet.getMsgSeq(m_bPeerRexmitFlag));
+    HLOGC(rbuflog.Debug, log << " m_iStartSeqNo " << m_iStartSeqNo << " offset " << offset);
 
     if (offset < 0)
     {
-        IF_RCVBUF_DEBUG(scoped_log.ss << " returns -2");
+        HLOGC(rbuflog.Debug, log << " returns -2");
         return -2;
     }
 
     if (offset >= (int)capacity())
     {
-        IF_RCVBUF_DEBUG(scoped_log.ss << " returns -3");
+        HLOGC(rbuflog.Debug, log << " returns -3");
         return -3;
     }
 
@@ -183,7 +137,7 @@ int CRcvBuffer::insert(CUnit* unit)
     SRT_ASSERT(pos >= 0 && pos < int(m_szSize));
     if (m_entries[pos].status != EntryState_Empty)
     {
-        IF_RCVBUF_DEBUG(scoped_log.ss << " returns -1");
+        HLOGC(rbuflog.Debug, log << " returns -1");
         return -1;
     }
     SRT_ASSERT(m_entries[pos].pUnit == NULL);
@@ -201,20 +155,19 @@ int CRcvBuffer::insert(CUnit* unit)
         onInsertNotInOrderPacket(pos);
     }
 
-    updateNonreadPos();
-    IF_RCVBUF_DEBUG(scoped_log.ss << " returns 0 (OK)");
+    HLOGC(rbuflog.Debug, log << "pos " << pos << " m_iMaxPosOff " << m_iMaxPosOff);updateNonreadPos();
+    HLOGC(rbuflog.Debug, log << " returns 0 (OK)");
     return 0;
 }
 
 int CRcvBuffer::dropUpTo(int32_t seqno)
-{HLOGC(srt_logging::inlog.Debug, log);
-    IF_RCVBUF_DEBUG(ScopedLog scoped_log);
-    IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::dropUpTo: seqno " << seqno << " m_iStartSeqNo " << m_iStartSeqNo);
+{
+    HLOGC(rbuflog.Debug, log << "CRcvBuffer::dropUpTo: seqno " << seqno << " m_iStartSeqNo " << m_iStartSeqNo);
 
     int len = CSeqNo::seqoff(m_iStartSeqNo, seqno);
     if (len <= 0)
     {
-        IF_RCVBUF_DEBUG(scoped_log.ss << ". Nothing to drop.");
+        HLOGC(rbuflog.Debug, log << ". Nothing to drop.");
         return 0;
     }
 
@@ -233,7 +186,7 @@ int CRcvBuffer::dropUpTo(int32_t seqno)
     }
 
     // Update positions
-    m_iStartSeqNo = seqno;
+    m_iStartSeqNo = seqno;HLOGC(rbuflog.Debug, log << "m_iStartSeqNo " << m_iStartSeqNo);
     // Move forward if there are "read/drop" entries.
     releaseNextFillerEntries();
     // Set nonread position to the starting position before updating,
@@ -255,9 +208,8 @@ int CRcvBuffer::dropAll()
 }
 
 int CRcvBuffer::dropMessage(int32_t seqnolo, int32_t seqnohi, int32_t msgno, DropActionIfExists actionOnExisting)
-{HLOGC(srt_logging::inlog.Debug, log);
-    IF_RCVBUF_DEBUG(ScopedLog scoped_log);
-    IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::dropMessage: seqnolo " << seqnolo << " seqnohi " << seqnohi
+{
+    HLOGC(rbuflog.Debug, log << "CRcvBuffer::dropMessage: seqnolo " << seqnolo << " seqnohi " << seqnohi
         << ", msgno " << msgno << " m_iStartSeqNo " << m_iStartSeqNo);
 
     // Drop by packet seqno range to also wipe those packets that do not exist in the buffer.
@@ -354,7 +306,7 @@ int CRcvBuffer::dropMessage(int32_t seqnolo, int32_t seqnohi, int32_t msgno, Dro
             if (bnd == PB_FIRST)
                 break;
         }
-        IF_RCVBUF_DEBUG(scoped_log.ss << " iDropCnt " << iDropCnt);
+        HLOGC(rbuflog.Debug, log << " iDropCnt " << iDropCnt);
     }
 
     // Check if units before m_iFirstNonreadPos are dropped.
@@ -376,7 +328,7 @@ int CRcvBuffer::dropMessage(int32_t seqnolo, int32_t seqnohi, int32_t msgno, Dro
 }
 
 int CRcvBuffer::readMessage(char* data, size_t len, SRT_MSGCTRL* msgctrl)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     const bool canReadInOrder = hasReadableInorderPkts();
     if (!canReadInOrder && m_iFirstReadableOutOfOrder < 0)
     {
@@ -386,8 +338,7 @@ int CRcvBuffer::readMessage(char* data, size_t len, SRT_MSGCTRL* msgctrl)
 
     const int readPos = canReadInOrder ? m_iStartPos : m_iFirstReadableOutOfOrder;
 
-    IF_RCVBUF_DEBUG(ScopedLog scoped_log);
-    IF_RCVBUF_DEBUG(scoped_log.ss << "CRcvBuffer::readMessage. m_iStartSeqNo " << m_iStartSeqNo << " m_iStartPos " << m_iStartPos << " readPos " << readPos);
+    HLOGC(rbuflog.Debug, log << "CRcvBuffer::readMessage. m_iStartSeqNo " << m_iStartSeqNo << " m_iStartPos " << m_iStartPos << " readPos " << readPos);
 
     size_t remain = len;
     char* dst = data;
@@ -440,7 +391,7 @@ int CRcvBuffer::readMessage(char* data, size_t len, SRT_MSGCTRL* msgctrl)
             m_iStartPos = incPos(i);
             --m_iMaxPosOff;
             SRT_ASSERT(m_iMaxPosOff >= 0);
-            m_iStartSeqNo = CSeqNo::incseq(pktseqno);
+            m_iStartSeqNo = CSeqNo::incseq(pktseqno);LOGC(rbuflog.Debug, log << "m_iStartSeqNo " << m_iStartSeqNo << " m_iStartPos " << m_iStartPos << " m_iMaxPosOff " << m_iMaxPosOff);
         }
         else
         {
@@ -477,7 +428,7 @@ int CRcvBuffer::readMessage(char* data, size_t len, SRT_MSGCTRL* msgctrl)
         LOGC(rbuflog.Error, log << "readMessage: small dst buffer, copied only " << bytes_read << "/" << bytes_extracted << " bytes.");
     }
 
-    IF_RCVBUF_DEBUG(scoped_log.ss << " pldi64 " << *reinterpret_cast<uint64_t*>(data));
+    HLOGC(rbuflog.Debug, log << " pldi64 " << *reinterpret_cast<uint64_t*>(data));
 
     return bytes_read;
 }
@@ -610,14 +561,14 @@ int CRcvBuffer::getRcvDataSize() const
 }
 
 int CRcvBuffer::getTimespan_ms() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     if (!m_tsbpd.isEnabled())
         return 0;
 
     if (m_iMaxPosOff == 0)
         return 0;
 
-    int lastpos = incPos(m_iStartPos, m_iMaxPosOff - 1);
+    int lastpos = incPos(m_iStartPos, m_iMaxPosOff - 1);HLOGC(srt_logging::inlog.Debug, log << m_iStartPos << " " << m_iMaxPosOff << " " << lastpos);
     // Normally the last position should always be non empty
     // if TSBPD is enabled (reading out of order is not allowed).
     // However if decryption of the last packet fails, it may be dropped
@@ -652,7 +603,7 @@ int CRcvBuffer::getTimespan_ms() const
 }
 
 int CRcvBuffer::getRcvDataSize(int& bytes, int& timespan) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock lck(m_BytesCountLock);
     bytes = m_iBytesCount;
     timespan = getTimespan_ms();
@@ -660,7 +611,7 @@ int CRcvBuffer::getRcvDataSize(int& bytes, int& timespan) const
 }
 
 CRcvBuffer::PacketInfo CRcvBuffer::getFirstValidPacketInfo() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     const int end_pos = incPos(m_iStartPos, m_iMaxPosOff);
     for (int i = m_iStartPos; i != end_pos; i = incPos(i))
     {
@@ -746,16 +697,19 @@ CRcvBuffer::PacketInfo CRcvBuffer::getFirstReadablePacketInfo(time_point time_no
 }
 
 void CRcvBuffer::countBytes(int pkts, int bytes)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock lock(m_BytesCountLock);
     m_iBytesCount += bytes; // added or removed bytes from rcv buffer
     m_iPktsCount  += pkts;
     if (bytes > 0)          // Assuming one pkt when adding bytes
+    {
         m_uAvgPayloadSz = avg_iir<100>(m_uAvgPayloadSz, (unsigned) bytes);
+        HLOGC(srt_logging::inlog.Debug, log << "m_iBytesCount " << m_iBytesCount << " m_iPktsCount " << m_iPktsCount << " m_uAvgPayloadSz " << m_uAvgPayloadSz);
+    }
 }
 
 void CRcvBuffer::releaseUnitInPos(int pos)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CUnit* tmp = m_entries[pos].pUnit;
     m_entries[pos] = Entry(); // pUnit = NULL; status = Empty
     if (tmp != NULL)
@@ -763,15 +717,15 @@ void CRcvBuffer::releaseUnitInPos(int pos)
 }
 
 bool CRcvBuffer::dropUnitInPos(int pos)
-{HLOGC(srt_logging::inlog.Debug, log);
+{HLOGC(srt_logging::inlog.Debug, log << pos);
     if (!m_entries[pos].pUnit)
         return false;
     if (m_tsbpd.isEnabled())
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         updateTsbPdTimeBase(packetAt(pos).getMsgTimeStamp());
     }
     else if (m_bMessageAPI && !packetAt(pos).getMsgOrderFlag())
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         --m_numOutOfOrderPackets;
         if (pos == m_iFirstReadableOutOfOrder)
             m_iFirstReadableOutOfOrder = -1;
@@ -781,11 +735,11 @@ bool CRcvBuffer::dropUnitInPos(int pos)
 }
 
 void CRcvBuffer::releaseNextFillerEntries()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     int pos = m_iStartPos;
     while (m_entries[pos].status == EntryState_Read || m_entries[pos].status == EntryState_Drop)
     {
-        m_iStartSeqNo = CSeqNo::incseq(m_iStartSeqNo);
+        m_iStartSeqNo = CSeqNo::incseq(m_iStartSeqNo);HLOGC(rbuflog.Debug, log << "m_iStartSeqNo " << m_iStartSeqNo);
         releaseUnitInPos(pos);
         pos = incPos(pos);
         m_iStartPos = pos;
@@ -797,7 +751,7 @@ void CRcvBuffer::releaseNextFillerEntries()
 
 // TODO: Is this function complete? There are some comments left inside.
 void CRcvBuffer::updateNonreadPos()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     if (m_iMaxPosOff == 0)
         return;
 
@@ -829,6 +783,7 @@ void CRcvBuffer::updateNonreadPos()
 
         pos = m_iFirstNonreadPos;
     }
+    HLOGC(srt_logging::inlog.Debug, log << "pos " << pos);
 }
 
 int CRcvBuffer::findLastMessagePkt()
@@ -1044,12 +999,12 @@ int CRcvBuffer::scanNotInOrderMessageLeft(const int startPos, int msgNo) const
 }
 
 bool CRcvBuffer::addRcvTsbPdDriftSample(uint32_t usTimestamp, const time_point& tsPktArrival, int usRTTSample)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     return m_tsbpd.addDriftSample(usTimestamp, tsPktArrival, usRTTSample);
 }
 
 void CRcvBuffer::setTsbPdMode(const steady_clock::time_point& timebase, bool wrap, duration delay)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_tsbpd.setTsbPdMode(timebase, wrap, delay);
 }
 
@@ -1057,24 +1012,24 @@ void CRcvBuffer::applyGroupTime(const steady_clock::time_point& timebase,
     bool                            wrp,
     uint32_t                        delay,
     const steady_clock::duration& udrift)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_tsbpd.applyGroupTime(timebase, wrp, delay, udrift);
 }
 
 void CRcvBuffer::applyGroupDrift(const steady_clock::time_point& timebase,
     bool                            wrp,
     const steady_clock::duration& udrift)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_tsbpd.applyGroupDrift(timebase, wrp, udrift);
 }
 
 CRcvBuffer::time_point CRcvBuffer::getTsbPdTimeBase(uint32_t usPktTimestamp) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     return m_tsbpd.getTsbPdTimeBase(usPktTimestamp);
 }
 
 void CRcvBuffer::updateTsbPdTimeBase(uint32_t usPktTimestamp)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_tsbpd.updateTsbPdTimeBase(usPktTimestamp);
 }
 
@@ -1115,7 +1070,7 @@ string CRcvBuffer::strFullnessState(int iFirstUnackSeqNo, const time_point& tsNo
 }
 
 CRcvBuffer::time_point CRcvBuffer::getPktTsbPdTime(uint32_t usPktTimestamp) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     return m_tsbpd.getPktTsbPdTime(usPktTimestamp);
 }
 
@@ -1133,7 +1088,7 @@ int CRcvBuffer::getRcvAvgDataSize(int& bytes, int& timespan)
 
 /* Update moving average of acked data pkts, bytes, and timespan (ms) of the receive buffer */
 void CRcvBuffer::updRcvAvgDataSize(const steady_clock::time_point& now)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     if (!m_mavg.isTimeToUpdate(now))
         return;
 

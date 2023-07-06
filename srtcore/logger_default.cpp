@@ -1,12 +1,3 @@
-/*
-  WARNING: Generated from ../scripts/generate-logging-defs.tcl
-
-  DO NOT MODIFY.
-
-  Copyright applies as per the generator script.
- */
-
-
 #include "srt.h"
 #include "logging.h"
 #include "logger_defs.h"

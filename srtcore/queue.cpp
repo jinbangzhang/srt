@@ -1,55 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
-/*****************************************************************************
-Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above
-  copyright notice, this list of conditions and the
-  following disclaimer.
-
-* Redistributions in binary form must reproduce the
-  above copyright notice, this list of conditions
-  and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the University of Illinois
-  nor the names of its contributors may be used to
-  endorse or promote products derived from this
-  software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
-
-/*****************************************************************************
-written by
-   Yunhong Gu, last updated 05/05/2011
-modified by
-   Haivision Systems Inc.
-*****************************************************************************/
-
 #include "platform_sys.h"
 
 #include <cstring>
@@ -69,7 +17,7 @@ srt::CUnitQueue::CUnitQueue(int initNumUnits, int mss)
     : m_iNumTaken(0)
     , m_iMSS(mss)
     , m_iBlockSize(initNumUnits)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CQEntry* tempq = allocateEntry(m_iBlockSize, m_iMSS);
 
     if (tempq == NULL)
@@ -102,7 +50,7 @@ srt::CUnitQueue::~CUnitQueue()
 }
 
 srt::CUnitQueue::CQEntry* srt::CUnitQueue::allocateEntry(const int iNumUnits, const int mss)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CQEntry* tempq = NULL;
     CUnit* tempu   = NULL;
     char* tempb    = NULL;
@@ -195,7 +143,7 @@ void srt::CUnitQueue::makeUnitFree(CUnit* unit)
 }
 
 void srt::CUnitQueue::makeUnitTaken(CUnit* unit)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ++m_iNumTaken;
 
     SRT_ASSERT(unit != NULL);
@@ -209,7 +157,7 @@ srt::CSndUList::CSndUList(sync::CTimer* pTimer)
     , m_iLastEntry(-1)
     , m_ListLock()
     , m_pTimer(pTimer)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     setupCond(m_ListCond, "CSndUListCond");
     m_pHeap = new CSNode*[m_iArrayLength];
 }
@@ -221,12 +169,12 @@ srt::CSndUList::~CSndUList()
 }
 
 void srt::CSndUList::update(const CUDT* u, EReschedule reschedule, sync::steady_clock::time_point ts)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock listguard(m_ListLock);
 
     CSNode* n = u->m_pSNode;
 
-    if (n->m_iHeapLoc >= 0)
+    HLOGC(srt_logging::inlog.Debug, log << reschedule << " " << n->m_iHeapLoc);if (n->m_iHeapLoc >= 0)
     {
         if (reschedule == DONT_RESCHEDULE)
             return;
@@ -272,7 +220,7 @@ void srt::CSndUList::remove(const CUDT* u)
 }
 
 steady_clock::time_point srt::CSndUList::getNextProcTime()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock listguard(m_ListLock);
 
     if (-1 == m_iLastEntry)
@@ -282,12 +230,12 @@ steady_clock::time_point srt::CSndUList::getNextProcTime()
 }
 
 void srt::CSndUList::waitNonEmpty() const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     UniqueLock listguard(m_ListLock);
     if (m_iLastEntry >= 0)
         return;
 
-    m_ListCond.wait(listguard);
+    HLOGC(srt_logging::inlog.Debug, log);m_ListCond.wait(listguard);
 }
 
 void srt::CSndUList::signalInterrupt() const
@@ -316,7 +264,7 @@ void srt::CSndUList::realloc_()
 }
 
 void srt::CSndUList::insert_(const steady_clock::time_point& ts, const CUDT* u)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // increase the heap array size if necessary
     if (m_iLastEntry == m_iArrayLength - 1)
         realloc_();
@@ -325,7 +273,7 @@ void srt::CSndUList::insert_(const steady_clock::time_point& ts, const CUDT* u)
 }
 
 void srt::CSndUList::insert_norealloc_(const steady_clock::time_point& ts, const CUDT* u)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CSNode* n = u->m_pSNode;
 
     // do not insert repeated node
@@ -361,7 +309,7 @@ void srt::CSndUList::insert_norealloc_(const steady_clock::time_point& ts, const
     if (0 == m_iLastEntry)
     {
         // m_ListLock is assumed to be locked.
-        m_ListCond.notify_one();
+        m_ListCond.notify_one();HLOGC(srt_logging::inlog.Debug, log);
     }
 }
 
@@ -410,7 +358,7 @@ srt::CSndQueue::CSndQueue()
     , m_pChannel(NULL)
     , m_pTimer(NULL)
     , m_bClosing(false)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 }
 
 srt::CSndQueue::~CSndQueue()
@@ -443,24 +391,17 @@ int srt::CSndQueue::sockoptQuery(int level, int type) const
     return m_pChannel->sockoptQuery(level, type);
 }
 
-#if ENABLE_LOGGING
 int srt::CSndQueue::m_counter = 0;
-#endif
 
 void srt::CSndQueue::init(CChannel* c, CTimer* t)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_pChannel  = c;
     m_pTimer    = t;
-    HLOGC(inlog.Debug, log << "new CSndUList(t)");
     m_pSndUList = new CSndUList(t);
 
-#if ENABLE_LOGGING
     ++m_counter;
     const std::string thrname = "SRT:SndQ:w" + Sprint(m_counter);
     const char*       thname  = thrname.c_str();
-#else
-    const char* thname = "SRT:SndQ";
-#endif
     if (!StartThread(m_WorkerThread, CSndQueue::worker, this, thname))
         throw CUDTException(MJ_SYSTEMRES, MN_THREAD);
 }
@@ -502,14 +443,10 @@ static void CSndQueueDebugHighratePrint(const srt::CSndQueue* self, const steady
 #endif
 
 void* srt::CSndQueue::worker(void* param)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CSndQueue* self = (CSndQueue*)param;
 
-#if ENABLE_LOGGING
     THREAD_STATE_INIT(("SRT:SndQ:w" + Sprint(m_counter)).c_str());
-#else
-    THREAD_STATE_INIT("SRT:SndQ:worker");
-#endif
 
 #if defined(SRT_DEBUG_SNDQ_HIGHRATE)
 #define IF_DEBUG_HIGHRATE(statement) statement
@@ -591,8 +528,8 @@ void* srt::CSndQueue::worker(void* param)
         }
 
         const sockaddr_any addr = u->m_PeerAddr;
-        if (!is_zero(next_send_time))
-            self->m_pSndUList->update(u, CSndUList::DO_RESCHEDULE, next_send_time);
+        if (!is_zero(next_send_time)) {HLOGC(srt_logging::inlog.Debug, log);
+            self->m_pSndUList->update(u, CSndUList::DO_RESCHEDULE, next_send_time);}
 
         HLOGC(qslog.Debug, log << self->CONID() << "chn:SENDING: " << pkt.Info());
         self->m_pChannel->sendto(addr, pkt, source_addr);
@@ -605,7 +542,7 @@ void* srt::CSndQueue::worker(void* param)
 }
 
 int srt::CSndQueue::sendto(const sockaddr_any& addr, CPacket& w_packet, const sockaddr_any& src)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // send out the packet immediately (high priority), this is a control packet
     // NOTE: w_packet is passed by mutable reference because this function will do
     // a modification in place and then it will revert it. After returning this object
@@ -618,7 +555,7 @@ int srt::CSndQueue::sendto(const sockaddr_any& addr, CPacket& w_packet, const so
 srt::CRcvUList::CRcvUList()
     : m_pUList(NULL)
     , m_pLast(NULL)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 }
 
 srt::CRcvUList::~CRcvUList() {HLOGC(srt_logging::inlog.Debug, log);}
@@ -709,7 +646,7 @@ void srt::CRcvUList::update(const CUDT* u)
 srt::CHash::CHash()
     : m_pBucket(NULL)
     , m_iHashSize(0)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 }
 
 srt::CHash::~CHash()
@@ -729,7 +666,7 @@ srt::CHash::~CHash()
 }
 
 void srt::CHash::init(int size)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_pBucket = new CBucket*[size];
 
     for (int i = 0; i < size; ++i)
@@ -739,7 +676,7 @@ void srt::CHash::init(int size)
 }
 
 srt::CUDT* srt::CHash::lookup(int32_t id)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // simple hash function (% hash table size); suitable for socket descriptors
     CBucket* b = m_pBucket[id % m_iHashSize];
 
@@ -750,7 +687,7 @@ srt::CUDT* srt::CHash::lookup(int32_t id)
         b = b->m_pNext;
     }
 
-    return NULL;
+    HLOGC(srt_logging::inlog.Debug, log);return NULL;
 }
 
 void srt::CHash::insert(int32_t id, CUDT* u)
@@ -793,7 +730,7 @@ void srt::CHash::remove(int32_t id)
 srt::CRendezvousQueue::CRendezvousQueue()
     : m_lRendezvousID()
     , m_RIDListLock()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
 }
 
 srt::CRendezvousQueue::~CRendezvousQueue()
@@ -821,21 +758,21 @@ void srt::CRendezvousQueue::insert(const SRTSOCKET&           id,
 }
 
 void srt::CRendezvousQueue::remove(const SRTSOCKET& id)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock lkv(m_RIDListLock);
 
     for (list<CRL>::iterator i = m_lRendezvousID.begin(); i != m_lRendezvousID.end(); ++i)
     {
         if (i->m_iID == id)
         {
-            m_lRendezvousID.erase(i);
+            m_lRendezvousID.erase(i);HLOGC(srt_logging::inlog.Debug, log);
             break;
         }
     }
 }
 
 srt::CUDT* srt::CRendezvousQueue::retrieve(const sockaddr_any& addr, SRTSOCKET& w_id) const
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     ScopedLock vg(m_RIDListLock);
 
     IF_HEAVY_LOGGING(const char* const id_type = w_id ? "THIS ID" : "A NEW CONNECTION");
@@ -1137,7 +1074,7 @@ srt::CRcvQueue::CRcvQueue()
     , m_IDLock()
     , m_mBuffer()
     , m_BufferCond()
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     setupCond(m_BufferCond, "QueueBuffer");
 }
 
@@ -1170,17 +1107,14 @@ srt::CRcvQueue::~CRcvQueue()
     }
 }
 
-#if ENABLE_LOGGING
 srt::sync::atomic<int> srt::CRcvQueue::m_counter(0);
-#endif
 
 void srt::CRcvQueue::init(int qsize, size_t payload, int version, int hsize, CChannel* cc, CTimer* t)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     m_iIPversion    = version;
     m_szPayloadSize = payload;
 
     SRT_ASSERT(m_pUnitQueue == NULL);
-    HLOGC(inlog.Debug, log << "new CUnitQueue(qsize, (int)payload)");
     m_pUnitQueue = new CUnitQueue(qsize, (int)payload);
 
     m_pHash = new CHash;
@@ -1189,17 +1123,11 @@ void srt::CRcvQueue::init(int qsize, size_t payload, int version, int hsize, CCh
     m_pChannel = cc;
     m_pTimer   = t;
 
-    HLOGC(inlog.Debug, log << "new CRcvUList");
     m_pRcvUList        = new CRcvUList;
-    HLOGC(inlog.Debug, log << "new CRendezvousQueue");
     m_pRendezvousQueue = new CRendezvousQueue;
 
-#if ENABLE_LOGGING
     const int cnt = ++m_counter;
     const std::string thrname = "SRT:RcvQ:w" + Sprint(cnt);
-#else
-    const std::string thrname = "SRT:RcvQ:w";
-#endif
 
     if (!StartThread(m_WorkerThread, CRcvQueue::worker, this, thrname.c_str()))
     {
@@ -1208,16 +1136,12 @@ void srt::CRcvQueue::init(int qsize, size_t payload, int version, int hsize, CCh
 }
 
 void* srt::CRcvQueue::worker(void* param)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CRcvQueue*   self = (CRcvQueue*)param;
     sockaddr_any sa(self->getIPversion());
     int32_t      id = 0;
 
-#if ENABLE_LOGGING
     THREAD_STATE_INIT(("SRT:RcvQ:w" + Sprint(m_counter)).c_str());
-#else
-    THREAD_STATE_INIT("SRT:RcvQ:worker");
-#endif
 
     CUnit*         unit = 0;
     EConnectStatus cst  = CONN_AGAIN;
@@ -1249,14 +1173,14 @@ void* srt::CRcvQueue::worker(void* param)
             if (id == 0)
             {
                 // ID 0 is for connection request, which should be passed to the listening socket or rendezvous sockets
-                cst = self->worker_ProcessConnectionRequest(unit, sa);
+                HLOGC(srt_logging::qrlog.Debug, log);cst = self->worker_ProcessConnectionRequest(unit, sa);
             }
             else
             {
                 // Otherwise ID is expected to be associated with:
                 // - an enqueued rendezvous socket
                 // - a socket connected to a peer
-                cst = self->worker_ProcessAddressedPacket(id, unit, sa);
+                HLOGC(srt_logging::qrlog.Debug, log);cst = self->worker_ProcessAddressedPacket(id, unit, sa);
                 // CAN RETURN CONN_REJECT, but m_RejectReason is already set
             }
             HLOGC(qrlog.Debug, log << self->CONID() << "worker: result for the unit: " << ConnectStatusStr(cst));
@@ -1296,13 +1220,13 @@ void* srt::CRcvQueue::worker(void* param)
 
         CRNode* ul = self->m_pRcvUList->m_pUList;
         while ((NULL != ul) && (ul->m_tsTimeStamp < curtime_minus_syn))
-        {
+        {HLOGC(srt_logging::inlog.Debug, log);
             CUDT* u = ul->m_pUDT;
 
             if (u->m_bConnected && !u->m_bBroken && !u->m_bClosing)
             {
-                u->checkTimers();
-                self->m_pRcvUList->update(u);
+                HLOGC(srt_logging::inlog.Debug, log);u->checkTimers();
+                HLOGC(inlog.Debug, log);self->m_pRcvUList->update(u);
             }
             else
             {
@@ -1352,7 +1276,7 @@ srt::EReadStatus srt::CRcvQueue::worker_RetrieveUnit(int32_t& w_id, CUnit*& w_un
 
     // check waiting list, if new socket, insert it to the list
     while (ifNewEntry())
-    {
+    {HLOGC(srt_logging::inlog.Debug, log);
         CUDT* ne = getNewEntry();
         if (ne)
         {
@@ -1401,7 +1325,7 @@ srt::EReadStatus srt::CRcvQueue::worker_RetrieveUnit(int32_t& w_id, CUnit*& w_un
 }
 
 srt::EConnectStatus srt::CRcvQueue::worker_ProcessConnectionRequest(CUnit* unit, const sockaddr_any& addr)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     HLOGC(cnlog.Debug,
           log << "Got sockID=0 from " << addr.str() << " - trying to resolve it as a connection request...");
     // Introduced protection because it may potentially happen
@@ -1444,7 +1368,7 @@ srt::EConnectStatus srt::CRcvQueue::worker_ProcessConnectionRequest(CUnit* unit,
 }
 
 srt::EConnectStatus srt::CRcvQueue::worker_ProcessAddressedPacket(int32_t id, CUnit* unit, const sockaddr_any& addr)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CUDT* u = m_pHash->lookup(id);
     if (!u)
     {
@@ -1476,13 +1400,13 @@ srt::EConnectStatus srt::CRcvQueue::worker_ProcessAddressedPacket(int32_t id, CU
         return CONN_REJECT;
     }
 
-    if (unit->m_Packet.isControl())
-        u->processCtrl(unit->m_Packet);
-    else
-        u->processData(unit);
+    HLOGC(srt_logging::inlog.Debug, log);if (unit->m_Packet.isControl()) {
+        HLOGC(srt_logging::inlog.Debug, log);u->processCtrl(unit->m_Packet); }
+    else {
+        HLOGC(srt_logging::inlog.Debug, log);u->processData(unit); }
 
-    u->checkTimers();
-    m_pRcvUList->update(u);
+    HLOGC(srt_logging::inlog.Debug, log);u->checkTimers();
+    HLOGC(srt_logging::inlog.Debug, log);m_pRcvUList->update(u);
 
     return CONN_RUNNING;
 }
@@ -1496,7 +1420,7 @@ srt::EConnectStatus srt::CRcvQueue::worker_ProcessAddressedPacket(int32_t id, CU
 // request in ASYNC mode; when this is not applicable, it stores the packet
 // in the "receiving queue" so that it will be picked up in the "main" thread.
 srt::EConnectStatus srt::CRcvQueue::worker_TryAsyncRend_OrStore(int32_t id, CUnit* unit, const sockaddr_any& addr)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     // This 'retrieve' requires that 'id' be either one of those
     // stored in the rendezvous queue (see CRcvQueue::registerConnector)
     // or simply 0, but then at least the address must match one of these.
@@ -1601,7 +1525,7 @@ srt::EConnectStatus srt::CRcvQueue::worker_TryAsyncRend_OrStore(int32_t id, CUni
 
                 // Theoretically we should check if m_pHash->lookup(ne->m_SocketID) returns 'ne', but this
                 // has been just added to m_pHash, so the check would be extremely paranoid here.
-                cst = worker_ProcessAddressedPacket(id, unit, addr);
+                HLOGC(srt_logging::qrlog.Debug, log);cst = worker_ProcessAddressedPacket(id, unit, addr);
                 if (cst == CONN_REJECT)
                     return cst;
                 return CONN_ACCEPT; // this function usually will return CONN_CONTINUE, which doesn't represent current
@@ -1643,14 +1567,14 @@ void srt::CRcvQueue::stopWorker()
 }
 
 int srt::CRcvQueue::recvfrom(int32_t id, CPacket& w_packet)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CUniqueSync buffercond(m_BufferLock, m_BufferCond);
 
     map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.find(id);
 
     if (i == m_mBuffer.end())
     {
-        THREAD_PAUSED();
+        THREAD_PAUSED();HLOGC(srt_logging::inlog.Debug, log);
         buffercond.wait_for(seconds_from(1));
         THREAD_RESUMED();HLOGC(srt_logging::inlog.Debug, log);
 
@@ -1775,7 +1699,7 @@ srt::CUDT* srt::CRcvQueue::getNewEntry()
 }
 
 void srt::CRcvQueue::storePkt(int32_t id, CPacket* pkt)
-{HLOGC(srt_logging::inlog.Debug, log);
+{
     CUniqueSync passcond(m_BufferLock, m_BufferCond);
 
     map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.find(id);

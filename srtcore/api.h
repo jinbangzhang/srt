@@ -1,55 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2018 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-
-/*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-* Redistributions of source code must retain the above
-  copyright notice, this list of conditions and the
-  following disclaimer.
-
-* Redistributions in binary form must reproduce the
-  above copyright notice, this list of conditions
-  and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the University of Illinois
-  nor the names of its contributors may be used to
-  endorse or promote products derived from this
-  software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
-
-/*****************************************************************************
-written by
-    Yunhong Gu, last updated 09/28/2010
-modified by
-    Haivision Systems Inc.
-*****************************************************************************/
-
 #ifndef INC_SRT_API_H
 #define INC_SRT_API_H
 
@@ -64,9 +12,7 @@ modified by
 #include "epoll.h"
 #include "handshake.h"
 #include "core.h"
-#if ENABLE_BONDING
 #include "group.h"
-#endif
 
 // Please refer to structure and locking information provided in the
 // docs/dev/low-level-info.md document.
@@ -86,17 +32,15 @@ public:
         , m_SocketID(0)
         , m_ListenSocket(0)
         , m_PeerID(0)
-#if ENABLE_BONDING
         , m_GroupMemberData()
         , m_GroupOf()
-#endif
         , m_iISN(0)
         , m_UDT(this)
         , m_AcceptCond()
         , m_AcceptLock()
         , m_uiBackLog(0)
         , m_iMuxID(-1)
-    {HLOGC(srt_logging::inlog.Debug, log);
+    {
         construct();
     }
 
@@ -105,10 +49,8 @@ public:
         , m_SocketID(0)
         , m_ListenSocket(0)
         , m_PeerID(0)
-#if ENABLE_BONDING
         , m_GroupMemberData()
         , m_GroupOf()
-#endif
         , m_iISN(0)
         , m_UDT(this, ancestor.m_UDT)
         , m_AcceptCond()
@@ -140,10 +82,8 @@ public:
     SRTSOCKET m_ListenSocket; //< ID of the listener socket; 0 means this is an independent socket
 
     SRTSOCKET m_PeerID; //< peer socket ID
-#if ENABLE_BONDING
     groups::SocketData* m_GroupMemberData; //< Pointer to group member data, or NULL if not a group member
     CUDTGroup*          m_GroupOf;         //< Group this socket is a member of, or NULL if it isn't
-#endif
 
     int32_t m_iISN; //< initial sequence number, used to tell different connection from same IP:port
 
@@ -291,10 +231,8 @@ public:
     int       connect(SRTSOCKET u, const sockaddr* srcname, const sockaddr* tarname, int tarlen);
     int       connect(const SRTSOCKET u, const sockaddr* name, int namelen, int32_t forced_isn);
     int       connectIn(CUDTSocket* s, const sockaddr_any& target, int32_t forced_isn);
-#if ENABLE_BONDING
     int groupConnect(CUDTGroup* g, SRT_SOCKGROUPCONFIG targets[], int arraysize);
     int singleMemberConnect(CUDTGroup* g, SRT_SOCKGROUPCONFIG* target);
-#endif
     int  close(const SRTSOCKET u);
     int  close(CUDTSocket* s);
     void getpeername(const SRTSOCKET u, sockaddr* name, int* namelen);
@@ -314,16 +252,13 @@ public:
     template <class EntityType>
     int epoll_remove_entity(const int eid, EntityType* ent);
     int epoll_remove_socket_INTERNAL(const int eid, CUDTSocket* ent);
-#if ENABLE_BONDING
     int epoll_remove_group_INTERNAL(const int eid, CUDTGroup* ent);
-#endif
     int     epoll_remove_ssock(const int eid, const SYSSOCKET s);
     int     epoll_update_ssock(const int eid, const SYSSOCKET s, const int* events = NULL);
     int     epoll_uwait(const int eid, SRT_EPOLL_EVENT* fdsSet, int fdsSize, int64_t msTimeOut);
     int32_t epoll_set(const int eid, int32_t flags);
     int     epoll_release(const int eid);
 
-#if ENABLE_BONDING
     // [[using locked(m_GlobControlLock)]]
     CUDTGroup& addGroup(SRTSOCKET id, SRT_GROUP_TYPE type)
     {
@@ -356,7 +291,6 @@ public:
         }
         return NULL;
     }
-#endif
 
     CEPoll& epoll_ref() { return m_EPoll; }
 
@@ -387,10 +321,8 @@ private:
     typedef std::map<SRTSOCKET, CUDTSocket*> sockets_t; // stores all the socket structures
     sockets_t                                m_Sockets;
 
-#if ENABLE_BONDING
     typedef std::map<SRTSOCKET, CUDTGroup*> groups_t;
     groups_t                                m_Groups;
-#endif
 
     sync::Mutex m_GlobControlLock; // used to synchronize UDT API
 
@@ -412,7 +344,6 @@ private:
     CUDTSocket* locateSocket_LOCKED(SRTSOCKET u);
     CUDTSocket* locatePeer(const sockaddr_any& peer, const SRTSOCKET id, int32_t isn);
 
-#if ENABLE_BONDING
     CUDTGroup* locateAcquireGroup(SRTSOCKET u, ErrorHandling erh = ERH_RETURN);
     CUDTGroup* acquireSocketsGroup(CUDTSocket* s);
 
@@ -443,7 +374,6 @@ private:
         }
     };
 
-#endif
     void updateMux(CUDTSocket* s, const sockaddr_any& addr, const UDPSOCKET* = NULL);
     bool updateListenerMux(CUDTSocket* s, const CUDTSocket* ls);
 
@@ -479,9 +409,7 @@ private:
     static void*  garbageCollect(void*);
 
     sockets_t m_ClosedSockets; // temporarily store closed sockets
-#if ENABLE_BONDING
     groups_t m_ClosedGroups;
-#endif
 
     void checkBrokenSockets();
     void removeSocket(const SRTSOCKET u);

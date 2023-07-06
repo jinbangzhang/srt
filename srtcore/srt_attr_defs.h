@@ -1,17 +1,3 @@
-/*
- * SRT - Secure, Reliable, Transport
- * Copyright (c) 2019 Haivision Systems Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v.2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- */
-/*****************************************************************************
-The file contains various planform and compiler dependent attribute definitions
-used by SRT library internally.
- *****************************************************************************/
-
 #ifndef INC_SRT_ATTR_DEFS_H
 #define INC_SRT_ATTR_DEFS_H
 
